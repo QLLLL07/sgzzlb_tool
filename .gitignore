@@ -1,0 +1,17 @@
+# 构建产物
+*.o
+*.so
+*.dll
+build/
+CMakeCache.txt
+CMakeFiles/
+
+# Python
+__pycache__/
+*.py[cod]
+
+# 编辑器 / 系统
+.vscode/
+.idea/
+*.swp
+.DS_Store
