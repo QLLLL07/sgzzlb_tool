@@ -67,7 +67,12 @@ class CoreBridge:
     def _configure(self):
         lib = self._lib
         for name in ("get_version", "load_data", "reload_data", "evaluate_team",
-                     "evaluate_team_troop", "recommend_teams", "get_heroes", "get_tactics"):
+                     "evaluate_team_troop", "recommend_teams", "recommend_account_teams",
+                     "recommend_tactics",
+                     "evaluate_team_stars", "get_tactic_max_level", "get_tactics_max_level",
+                     "create_local_account", "set_local_account_hero", "get_local_account",
+                     "list_local_accounts", "save_local_accounts", "load_local_accounts",
+                     "get_heroes", "get_tactics"):
             getattr(lib, name).restype = ctypes.c_void_p
         lib.free_string.argtypes = [ctypes.c_char_p]
         lib.load_data.argtypes = [ctypes.c_char_p]
@@ -75,6 +80,17 @@ class CoreBridge:
         lib.evaluate_team.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_int]
         lib.evaluate_team_troop.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int]
         lib.recommend_teams.argtypes = [ctypes.c_int]
+        lib.recommend_tactics.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_int,
+                                          ctypes.c_int, ctypes.c_int]
+        lib.recommend_account_teams.argtypes = [ctypes.c_char_p, ctypes.c_int]
+        lib.evaluate_team_stars.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_int,
+                                            ctypes.c_int, ctypes.c_int, ctypes.c_int]
+        lib.get_tactic_max_level.argtypes = [ctypes.c_char_p]
+        lib.create_local_account.argtypes = [ctypes.c_char_p]
+        lib.set_local_account_hero.argtypes = [ctypes.c_char_p, ctypes.c_int, ctypes.c_int, ctypes.c_int]
+        lib.get_local_account.argtypes = [ctypes.c_char_p]
+        lib.save_local_accounts.argtypes = [ctypes.c_char_p]
+        lib.load_local_accounts.argtypes = [ctypes.c_char_p]
 
     # ---- 底层调用 ----
     def _call(self, fn, *args):
@@ -135,4 +151,51 @@ class CoreBridge:
 
     def recommend_teams(self, top_n=10) -> list:
         raw = self._call(self._lib.recommend_teams, int(top_n))
+        return json.loads(raw)
+
+    def recommend_tactics(self, hero_id: int, teammate1_id: int, teammate2_id: int,
+                          top_n=10, sims=200) -> dict:
+        """在固定队友和兵种下，以实战胜率比较指定武将可用传承战法。"""
+        raw = self._call(self._lib.recommend_tactics, int(hero_id), int(teammate1_id),
+                         int(teammate2_id), int(top_n), int(sims))
+        return json.loads(raw)
+
+    # ---- 本地账号、红度与满级战法接口 ----
+    def evaluate_team_stars(self, id1, id2, id3, stars1=0, stars2=0, stars3=0) -> dict:
+        """按三名武将各自 0..5 红度进行满级战法实战评估。"""
+        raw = self._call(self._lib.evaluate_team_stars, int(id1), int(id2), int(id3),
+                         int(stars1), int(stars2), int(stars3))
+        return json.loads(raw)
+
+    def tactic_max_level(self, name: str) -> dict:
+        """返回指定战法的满级数值模型和原始资料。"""
+        return json.loads(self._call(self._lib.get_tactic_max_level, name.encode("utf-8")))
+
+    def tactics_max_level(self) -> list:
+        return json.loads(self._call(self._lib.get_tactics_max_level))
+
+    def create_local_account(self, name: str) -> dict:
+        return json.loads(self._call(self._lib.create_local_account, name.encode("utf-8")))
+
+    def set_local_account_hero(self, account_id: str, hero_id: int, stars=0, owned=True) -> dict:
+        """新增、更新或移除本地账号的武将；红度在核心侧截断到 0..5。"""
+        raw = self._call(self._lib.set_local_account_hero, account_id.encode("utf-8"),
+                         int(hero_id), int(stars), 1 if owned else 0)
+        return json.loads(raw)
+
+    def get_local_account(self, account_id: str) -> dict:
+        return json.loads(self._call(self._lib.get_local_account, account_id.encode("utf-8")))
+
+    def list_local_accounts(self) -> list:
+        return json.loads(self._call(self._lib.list_local_accounts))
+
+    def save_local_accounts(self, path: str) -> dict:
+        return json.loads(self._call(self._lib.save_local_accounts, path.encode("utf-8")))
+
+    def load_local_accounts(self, path: str) -> dict:
+        return json.loads(self._call(self._lib.load_local_accounts, path.encode("utf-8")))
+
+    def recommend_account_teams(self, account_id: str, top_n=10) -> dict:
+        """只以账号拥有的武将为候选，按账号红度模拟并返回推荐结果。"""
+        raw = self._call(self._lib.recommend_account_teams, account_id.encode("utf-8"), int(top_n))
         return json.loads(raw)
