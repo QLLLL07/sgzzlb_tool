@@ -1,11 +1,12 @@
 # 《三国志·战略版》配将工具
 
-基于 C++17 动态库核心 + Python（tkinter）GUI 的配将辅助工具：评估任意三名武将组成的队伍（兵种、战法配装、评分、战斗模拟、战法联动与建议），并给出全局推荐阵容。
+基于 C++17 核心的配将辅助工具：Qt Widgets 原生桌面界面（首选）与现有 Python/tkinter 界面（兼容保留）都可评估任意三名武将组成的队伍，并给出全局推荐阵容。
 
 ## 架构
 
 ```
-libsgzzlb.so（C++ 核心）  ←──  ctypes  ──→  core_bridge.py  ──→  main.py（tkinter）
+libsgzzlb.so（C++ 核心）  ←──  直接链接  ──→  sgzzlb_qt（Qt Widgets）
+                    └─────  ctypes  ──→  core_bridge.py  ──→  main.py（tkinter，兼容）
 ```
 
 - **核心**（`core/`）：数据加载（含内置回退）、战法效果模型、8 回合蒙特卡洛战斗引擎、规则评分、战法配装、两阶段推荐搜索。
@@ -13,7 +14,7 @@ libsgzzlb.so（C++ 核心）  ←──  ctypes  ──→  core_bridge.py  ─�
 
 ## 构建
 
-依赖：`g++`（C++17）、`make`（或 `cmake`）。
+依赖：`g++`（C++17）、`make`（或 `cmake`）。原生界面另需 Qt 5/6 Widgets 开发包。
 
 ```bash
 make            # 生成 libsgzzlb.so
@@ -21,13 +22,35 @@ make            # 生成 libsgzzlb.so
 cmake -B build && cmake --build build
 ```
 
+检测到 Qt 后，上述 CMake 构建还会生成 `sgzzlb_qt`。例如 Debian/Ubuntu：
+
+```bash
+sudo apt install qt6-base-dev
+cmake -B build && cmake --build build
+./build/sgzzlb_qt
+```
+
 ## 运行
 
 ```bash
-python3 app/main.py        # 启动 GUI
+./build/sgzzlb_qt          # 启动 Qt 原生 GUI（通过 CMake 且已安装 Qt）
+python3 app/main.py        # 启动旧版 tkinter GUI（兼容保留）
 ```
 
+Qt 程序会自动从当前目录、可执行文件目录及其上级目录查找 `data/data.json`。Linux 的 CMake 构建已设置运行时路径，可执行文件会在同一构建目录加载 `libsgzzlb.so`。
+
 数据默认读取 `data/data.json`（138 武将 + 212 战法）；文件缺失时自动回退内置 12 名将 + 25 战法示例数据，可随时在界面"重载数据"。
+
+## Windows 发布
+
+在 Windows 上安装 Qt 5/6、CMake 和对应编译器后，在项目根目录执行：
+
+```bat
+cmake -S . -B build
+cmake --build build --config Release
+```
+
+使用 Qt MinGW 工具链时，在生成的可执行文件目录运行 Qt 自带的 `windeployqt sgzzlb_qt.exe`，并将 `data\data.json` 放在 exe 同级的 `data` 目录。旧版 Python/tkinter 兼容入口仍可通过 `windows\build_windows.bat` 使用 PyInstaller 打包。
 
 ## 测试
 

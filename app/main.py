@@ -13,10 +13,9 @@ import tkinter as tk
 from tkinter import ttk
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from core_bridge import CoreBridge, CoreBridgeError
+from core_bridge import CoreBridge, CoreBridgeError, resource_root
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DEFAULT_DATA = os.path.join(ROOT, "data", "data.json")
+DEFAULT_DATA = os.path.join(resource_root(), "data", "data.json")
 
 TROOP_OPTIONS = [("自动", -1), ("骑兵", 0), ("盾兵", 1), ("弓兵", 2), ("枪兵", 3)]
 KINGDOM_OPTIONS = ["全部", "魏", "蜀", "吴", "群", "晋", "汉"]
@@ -335,7 +334,7 @@ class App:
 def main():
     try:
         bridge = CoreBridge()
-    except CoreBridgeError as e:
+    except Exception as e:  # CoreBridgeError + 加载期 OSError（windowed exe 下不能静默退出）
         import tkinter.messagebox as mb
         mb.showerror("启动失败", str(e))
         return 1

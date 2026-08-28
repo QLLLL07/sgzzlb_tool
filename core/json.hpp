@@ -1,12 +1,14 @@
 // json.hpp - 极简 JSON DOM：解析 + 序列化，无第三方依赖。
 // 支持 null/bool/number/string/array/object，UTF-8 直通，\uXXXX 与代理对。
 #pragma once
+#include <cctype>
+#include <cmath>
+#include <cstdio>
+#include <cstdint>
+#include <map>
+#include <stdexcept>
 #include <string>
 #include <vector>
-#include <map>
-#include <cmath>
-#include <stdexcept>
-#include <cstdint>
 
 namespace jq {
 

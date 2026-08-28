@@ -2,6 +2,7 @@
 // 约定：返回的字符串全部 malloc 分配，由 free_string() 释放。
 //       hero id = store().heroes 数组下标（0-based），与 get_heroes() 返回顺序一致。
 #include "data.hpp"
+#include "api.hpp"
 #include "battle.hpp"
 #include "scoring.hpp"
 #include "tactic_assign.hpp"

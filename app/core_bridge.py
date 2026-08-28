@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""core_bridge.py - Python ctypes 桥接 libsgzzlb.so。
+"""core_bridge.py - Python ctypes 桥接核心动态库（libsgzzlb.so / libsgzzlb.dll）。
 
 封装约定：
 - 所有返回字符串由库 malloc，本模块读取后立即用 free_string 释放；
@@ -10,10 +10,41 @@
 import ctypes
 import json
 import os
+import sys
 import threading
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DEFAULT_LIB = os.path.join(ROOT, "libsgzzlb.so")
+
+def resource_root():
+    """资源根目录：PyInstaller 冻结运行时指向解包目录，否则为项目根目录。
+
+    cwd 无关：正常源码运行 = 项目根；打成单文件 exe 后 = sys._MEIPASS。
+    """
+    if getattr(sys, "frozen", False):
+        return getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
+    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+def _lib_candidates():
+    if sys.platform == "win32":
+        return ["libsgzzlb.dll", "sgzzlb.dll"]
+    return ["libsgzzlb.so"]
+
+
+def find_library():
+    """在资源根目录及其 windows/ 子目录探测实际存在的动态库。
+
+    找不到则返回首选名的期望路径（用于报错提示）。
+    """
+    for base in (resource_root(), os.path.join(resource_root(), "windows")):
+        for name in _lib_candidates():
+            p = os.path.join(base, name)
+            if os.path.exists(p):
+                return p
+    return os.path.join(resource_root(), _lib_candidates()[0])
+
+
+ROOT = resource_root()
+DEFAULT_LIB = find_library()
 
 
 class CoreBridgeError(RuntimeError):
@@ -24,7 +55,8 @@ class CoreBridge:
     def __init__(self, libpath=None):
         self._libpath = libpath or DEFAULT_LIB
         if not os.path.exists(self._libpath):
-            raise CoreBridgeError(f"未找到动态库: {self._libpath}（请先在项目根目录执行 make）")
+            hint = "请先构建 libsgzzlb.dll（见 README.md 的 Windows 发布说明）" if sys.platform == "win32" else "请先在项目根目录执行 make"
+            raise CoreBridgeError(f"未找到动态库: {self._libpath}（{hint}）")
         self._lib = ctypes.CDLL(self._libpath)
         self._lock = threading.Lock()
         self._heroes = []

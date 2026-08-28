@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""冒烟测试：通过 ctypes 验证 libsgzzlb.so 的 extern "C" 导出接口。
+"""冒烟测试：通过 ctypes 验证核心动态库的 extern "C" 导出接口。
 
-运行：python3 tests/test_api.py   （需先 make 构建 libsgzzlb.so）
+运行：python3 tests/test_api.py   （需先构建 libsgzzlb.so / libsgzzlb.dll）
 """
 import ctypes
 import json
@@ -10,7 +10,21 @@ import os
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-LIB = os.path.join(ROOT, "libsgzzlb.so")
+
+
+def _lib_candidates():
+    return ["libsgzzlb.dll", "sgzzlb.dll"] if sys.platform == "win32" else ["libsgzzlb.so"]
+
+
+def _find_lib():
+    for name in _lib_candidates():
+        p = os.path.join(ROOT, name)
+        if os.path.exists(p):
+            return p
+    return os.path.join(ROOT, _lib_candidates()[0])
+
+
+LIB = _find_lib()
 DATA = os.path.join(ROOT, "data", "data.json")
 
 failures = []
@@ -54,7 +68,7 @@ def call(lib, fn, *args):
 
 def main():
     if not os.path.exists(LIB):
-        print("未找到 libsgzzlb.so，请先在项目根目录执行 make")
+        print(f"未找到动态库 {LIB}，请先构建（Linux: make；Windows: 见 README.md）")
         return 1
     lib = load_lib()
 
