@@ -38,6 +38,9 @@ struct Hero {
     char aptitudeOf(TroopType t) const { return apt[(int)t]; }
 };
 
+// 红度 0..5：每级使基础属性与成长属性提高 2%。返回副本，绝不修改全局武将数据。
+Hero heroWithRedStars(const Hero& h, int redStars);
+
 struct Tactic {
     std::string id, name, type, category, quality, triggerRate;
     std::vector<std::string> validTroops; // 兵种战法限定，如 ["cavalry"]

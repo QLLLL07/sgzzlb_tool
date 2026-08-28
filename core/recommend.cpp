@@ -56,7 +56,9 @@ double fastRule(const HeroFeat& f1, const HeroFeat& f2, const HeroFeat& f3) {
 
 } // namespace
 
-std::vector<RecommendEntry> recommendTeams(int topN, int topM, int sims) {
+std::vector<RecommendEntry> recommendTeams(int topN, int topM, int sims,
+                                           const std::vector<int>* eligibleHeroIds,
+                                           const std::unordered_map<int, int>* redStars) {
     auto& st = store();
     std::vector<RecommendEntry> out;
     if (st.heroes.size() < 3) return out;
@@ -66,10 +68,18 @@ std::vector<RecommendEntry> recommendTeams(int topN, int topM, int sims) {
     warmBattleCache();
 
     // ---- 阶段一：全组合规则预筛 ----
-    int n = (int)st.heroes.size();
+    std::vector<int> ids;
+    if (eligibleHeroIds) {
+        for (int id : *eligibleHeroIds) if (st.heroByIndex(id)) ids.push_back(id);
+    } else {
+        ids.resize(st.heroes.size());
+        for (int i = 0; i < (int)ids.size(); ++i) ids[i] = i;
+    }
+    int n = (int)ids.size();
+    if (n < 3) return out;
     std::vector<HeroFeat> feat(n);
     for (int i = 0; i < n; i++) {
-        const Hero& h = st.heroes[i];
+        const Hero& h = st.heroes[ids[i]];
         feat[i].cost = h.cost;
         feat[i].kingdom = &h.kingdom;
         for (int t = 0; t < T_SIEGE; t++)
@@ -87,7 +97,7 @@ std::vector<RecommendEntry> recommendTeams(int topN, int topM, int sims) {
             for (int c = b + 1; c < n; c++) {
                 int cost = feat[a].cost + feat[b].cost + feat[c].cost;
                 if (cost > 20) continue; // 超统御无法上场，直接剔除
-                cands.push_back({fastRule(feat[a], feat[b], feat[c]), a, b, c});
+                cands.push_back({fastRule(feat[a], feat[b], feat[c]), ids[a], ids[b], ids[c]});
             }
         }
     }
@@ -112,9 +122,17 @@ std::vector<RecommendEntry> recommendTeams(int topN, int topM, int sims) {
                 if (k >= M) break;
                 const Candidate& cd = cands[k];
                 TeamConfig tc;
-                tc.hero[0] = &st.heroes[cd.a];
-                tc.hero[1] = &st.heroes[cd.b];
-                tc.hero[2] = &st.heroes[cd.c];
+                Hero adjusted[3];
+                int stars[3] = {0, 0, 0};
+                const int rawIds[3] = {cd.a, cd.b, cd.c};
+                for (int i = 0; i < 3; ++i) {
+                    if (redStars) {
+                        auto it = redStars->find(rawIds[i]);
+                        if (it != redStars->end()) stars[i] = std::max(0, std::min(5, it->second));
+                    }
+                    adjusted[i] = heroWithRedStars(st.heroes[rawIds[i]], stars[i]);
+                    tc.hero[i] = &adjusted[i];
+                }
                 tc.mainIdx = 0; // 主将取第一将（简化）
                 tc.troop = bestTroopType(tc.hero);
                 assignTactics(tc);
@@ -131,11 +149,13 @@ std::vector<RecommendEntry> recommendTeams(int topN, int topM, int sims) {
                 e.heroIdx[0] = cd.a;
                 e.heroIdx[1] = cd.b;
                 e.heroIdx[2] = cd.c;
-                e.cost = feat[cd.a].cost + feat[cd.b].cost + feat[cd.c].cost;
+                e.cost = st.heroes[cd.a].cost + st.heroes[cd.b].cost + st.heroes[cd.c].cost;
                 e.troop = tc.troop;
                 e.rule = cd.rule;
                 e.winRate = wr;
                 e.total = W_BATTLE * wr * 100.0 + W_RULE * cd.rule;
+                for (int i = 0; i < 3; ++i) e.redStars[i] = stars[i];
+                e.tacticLevel = tc.tacticLevel;
                 for (int i = 0; i < 3; i++)
                     for (const Tactic* t : tc.slots[i]) e.tactics[i].push_back(t->name);
                 entries[k] = e;
@@ -169,6 +189,11 @@ jq::Json recommendToJson(const std::vector<RecommendEntry>& entries) {
         j.set("rule", e.rule);
         j.set("winRate", e.winRate);
         j.set("total", e.total);
+        jq::Json rs = jq::Json::array();
+        for (int i = 0; i < 3; ++i) rs.push_back((double)e.redStars[i]);
+        j.set("redStars", rs);
+        j.set("tacticLevel", (double)e.tacticLevel);
+        j.set("evidence", "8回合蒙特卡洛实战胜率 + 规则分");
         arr.push_back(j);
     }
     return arr;

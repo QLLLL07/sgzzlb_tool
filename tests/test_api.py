@@ -44,14 +44,33 @@ def load_lib():
     lib.load_data.restype = ctypes.c_void_p
     lib.reload_data.restype = ctypes.c_void_p
     lib.evaluate_team.restype = ctypes.c_void_p
+    lib.evaluate_team_stars.restype = ctypes.c_void_p
     lib.recommend_teams.restype = ctypes.c_void_p
+    lib.recommend_tactics.restype = ctypes.c_void_p
+    lib.recommend_account_teams.restype = ctypes.c_void_p
+    lib.get_tactic_max_level.restype = ctypes.c_void_p
+    lib.create_local_account.restype = ctypes.c_void_p
+    lib.set_local_account_hero.restype = ctypes.c_void_p
+    lib.get_local_account.restype = ctypes.c_void_p
+    lib.save_local_accounts.restype = ctypes.c_void_p
+    lib.load_local_accounts.restype = ctypes.c_void_p
     lib.get_heroes.restype = ctypes.c_void_p
     lib.get_tactics.restype = ctypes.c_void_p
     lib.free_string.argtypes = [ctypes.c_char_p]
     lib.load_data.argtypes = [ctypes.c_char_p]
     lib.reload_data.argtypes = [ctypes.c_char_p]
     lib.evaluate_team.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_int]
+    lib.evaluate_team_stars.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_int,
+                                        ctypes.c_int, ctypes.c_int, ctypes.c_int]
     lib.recommend_teams.argtypes = [ctypes.c_int]
+    lib.recommend_tactics.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int]
+    lib.recommend_account_teams.argtypes = [ctypes.c_char_p, ctypes.c_int]
+    lib.get_tactic_max_level.argtypes = [ctypes.c_char_p]
+    lib.create_local_account.argtypes = [ctypes.c_char_p]
+    lib.set_local_account_hero.argtypes = [ctypes.c_char_p, ctypes.c_int, ctypes.c_int, ctypes.c_int]
+    lib.get_local_account.argtypes = [ctypes.c_char_p]
+    lib.save_local_accounts.argtypes = [ctypes.c_char_p]
+    lib.load_local_accounts.argtypes = [ctypes.c_char_p]
     return lib
 
 
@@ -104,6 +123,46 @@ def main():
     check("每将 2 战法", all(len(t) == 2 for t in rep.get("tactics", [])), str(rep.get("tactics")))
     check("有建议", len(rep.get("advice", [])) >= 1)
     check("总分 0-100", 0 <= rep.get("total", -1) <= 100, str(rep.get("total")))
+    check("默认满级战法", rep.get("tacticLevel") == 10 and "evidence" in rep, str(rep))
+
+    print("== 满级战法 / 红度评估 ==")
+    max_tactic = json.loads(call(lib, lib.get_tactic_max_level, "横扫千军".encode()))
+    check("满级战法查询", max_tactic.get("ok") is True and max_tactic.get("level") == 10 and
+          max_tactic.get("numericMultiplier") == 2, str(max_tactic))
+    red = json.loads(call(lib, lib.evaluate_team_stars, liu, guan, zhang, 5, 4, 3))
+    check("红度评估 ok", red.get("ok") is True and red.get("redStars") == [5, 4, 3], str(red))
+    check("红度进入战斗", red.get("battle", {}).get("sims") == 200 and
+          red.get("redStarAttributeMultiplier") == [1.1, 1.08, 1.06] and
+          "battleWinRateWithRedStars" in red, str(red))
+
+    print("== 实战战法推荐 ==")
+    tactic_recs = json.loads(call(lib, lib.recommend_tactics, guan, liu, zhang, 3, 30))
+    check("战法推荐 ok", tactic_recs.get("ok") is True and
+          len(tactic_recs.get("recommendations", [])) == 3, str(tactic_recs)[:240])
+    if tactic_recs.get("recommendations"):
+        check("战法推荐含实战证据", all("winRate" in x and "evidence" in x
+                                   for x in tactic_recs["recommendations"]), str(tactic_recs))
+
+    print("== 本地账号 / 限定推荐 ==")
+    account = json.loads(call(lib, lib.create_local_account, "测试账号".encode()))
+    account_id = account.get("id", "").encode()
+    check("创建本地账号", account.get("ok") is True and account_id, str(account))
+    for hid, stars in ((liu, 5), (guan, 3), (zhang, 1)):
+        owned = json.loads(call(lib, lib.set_local_account_hero, account_id, hid, stars, 1))
+        check(f"账号加入武将 {hid}", owned.get("ok") is True, str(owned))
+    owned = json.loads(call(lib, lib.get_local_account, account_id))
+    check("账号保留红度", {x["stars"] for x in owned.get("heroes", [])} == {1, 3, 5}, str(owned))
+    own_recs = json.loads(call(lib, lib.recommend_account_teams, account_id, 3))
+    check("账号限定推荐", own_recs.get("ok") is True and len(own_recs.get("recommendations", [])) == 1,
+          str(own_recs)[:240])
+    if own_recs.get("recommendations"):
+        check("推荐仅含已拥有武将", set(own_recs["recommendations"][0]["heroes"]) == {liu, guan, zhang},
+              str(own_recs))
+    account_file = os.path.join(ROOT, "build", "test_local_accounts.json")
+    saved = json.loads(call(lib, lib.save_local_accounts, account_file.encode()))
+    check("本地账号保存", saved.get("ok") is True and os.path.exists(account_file), str(saved))
+    loaded_accounts = json.loads(call(lib, lib.load_local_accounts, account_file.encode()))
+    check("本地账号加载", loaded_accounts.get("ok") is True and loaded_accounts.get("accounts"), str(loaded_accounts))
 
     print("== evaluate_team（非法下标）==")
     bad = json.loads(call(lib, lib.evaluate_team, 999, 0, 1))

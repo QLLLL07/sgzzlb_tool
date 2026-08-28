@@ -12,6 +12,7 @@ set(CORE_SRC
     core/scoring.cpp
     core/tactic_assign.cpp
     core/recommend.cpp
+    core/account.cpp
     core/api.cpp
 )
 

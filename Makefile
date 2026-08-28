@@ -5,6 +5,7 @@ INC := -Icore
 
 SRCS := core/data.cpp core/effects.cpp core/battle.cpp core/scoring.cpp \
         core/tactic_assign.cpp core/recommend.cpp core/api.cpp
+SRCS += core/account.cpp
 OBJS := $(SRCS:.cpp=.o)
 TARGET := libsgzzlb.so
 

@@ -49,6 +49,7 @@ struct Unit {
     int side = 0;     // 0=我方(评估方)，1=敌方(参考)
     int idx = 0;
     bool isMain = false;
+    int tacticLevel = 10;
     bool alive = true;
     double force = 0, intellect = 0, command = 0, speed = 0;
     int maxTroops = 10000, troops = 10000, wounded = 0;
@@ -114,6 +115,7 @@ struct Battle {
         un.side = side; // 0=我方(A) 1=敌方(B)，显式传入避免地址比较
         un.idx = i;
         un.isMain = (i == tc.mainIdx);
+        un.tacticLevel = std::max(1, std::min(10, tc.tacticLevel));
         UnitStats s = computeUnitStats(*tc.hero[i], tc.troop, un.isMain, nat, 50);
         un.force = s.force; un.intellect = s.intellect; un.command = s.command; un.speed = s.speed;
         un.troops = un.maxTroops = 10000;
@@ -203,7 +205,18 @@ struct Battle {
     }
 
     // ---- 效果施放 ----
-    void applyEffect(Unit& caster, Unit& target, const Effect& e, bool isPrepare) {
+    void applyEffect(Unit& caster, Unit& target, Effect e, bool isPrepare) {
+        // 数据文件记录的是 1 级数值。满级按 1.0 -> 2.0 线性外推；
+        // 状态概率与持续回合不随等级放大，数值型效果随施法者战法等级放大。
+        double levelScale = 1.0 + (caster.tacticLevel - 1) / 9.0;
+        switch (e.kind) {
+            case Effect::E_DMG_PHYS: case Effect::E_DMG_MAGIC: case Effect::E_TRUE_DMG:
+            case Effect::E_HEAL: case Effect::E_ATK_UP: case Effect::E_DEF_UP:
+            case Effect::E_VULN: case Effect::E_STAT_MOD: case Effect::E_TRIGGER_BOOST:
+                e.rate *= levelScale;
+                break;
+            default: break;
+        }
         switch (e.kind) {
             case Effect::E_ATK_UP:
                 if (targetRoleOk(caster, e)) target.atkAmp += e.rate;

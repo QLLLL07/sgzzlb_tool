@@ -1,5 +1,6 @@
 #include "data.hpp"
 #include "builtin_fallback.hpp"
+#include <algorithm>
 #include <fstream>
 #include <sstream>
 
@@ -7,6 +8,17 @@ namespace sgz {
 
 static DataStore g_store;
 DataStore& store() { return g_store; }
+
+Hero heroWithRedStars(const Hero& h, int redStars) {
+    Hero adjusted = h;
+    int stars = std::max(0, std::min(5, redStars));
+    double multiplier = 1.0 + 0.02 * stars;
+    adjusted.fBase *= multiplier; adjusted.fGrow *= multiplier;
+    adjusted.iBase *= multiplier; adjusted.iGrow *= multiplier;
+    adjusted.cBase *= multiplier; adjusted.cGrow *= multiplier;
+    adjusted.sBase *= multiplier; adjusted.sGrow *= multiplier;
+    return adjusted;
+}
 
 void loadBuiltinFallback() {
     try {

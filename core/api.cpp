@@ -7,9 +7,12 @@
 #include "scoring.hpp"
 #include "tactic_assign.hpp"
 #include "recommend.hpp"
+#include "account.hpp"
 #include "json.hpp"
+#include <algorithm>
 #include <cstdlib>
 #include <cstring>
+#include <functional>
 #include <string>
 
 #ifdef _WIN32
@@ -127,7 +130,37 @@ jq::Json evaluateTeamImpl(int id1, int id2, int id3, int troop = -1) {
     for (auto& a : adv) aj.push_back(a);
     j.set("advice", aj);
     j.set("total", total);
+    j.set("tacticLevel", (double)tc.tacticLevel);
+    j.set("evidence", "满级战法 + 8回合蒙特卡洛实战胜率");
     return j;
+}
+
+jq::Json evaluateTeamStarsImpl(int id1, int id2, int id3, const int stars[3]) {
+    auto& st = store();
+    const Hero* src[3] = {st.heroByIndex(id1), st.heroByIndex(id2), st.heroByIndex(id3)};
+    jq::Json err = jq::Json::object(); err.set("ok", false);
+    if (!src[0] || !src[1] || !src[2]) { err.set("error", "武将下标越界"); return err; }
+    Hero adjusted[3];
+    for (int i = 0; i < 3; ++i) adjusted[i] = heroWithRedStars(*src[i], stars[i]);
+    TeamConfig tc;
+    for (int i = 0; i < 3; ++i) tc.hero[i] = &adjusted[i];
+    tc.mainIdx = 0; tc.troop = bestTroopType(tc.hero); tc.tacticLevel = 10; assignTactics(tc);
+    RuleScore rs = ruleScore(tc); BattleStats bst; TeamConfig ref;
+    if (buildReferenceTeam(ref)) bst = simulateBattle(tc, ref, 200, 12345); else bst.sims = 0;
+    jq::Json out = evaluateTeamImpl(id1, id2, id3, (int)tc.troop);
+    jq::Json battle = jq::Json::object();
+    battle.set("sims", (double)bst.sims); battle.set("winRate", bst.winRate);
+    battle.set("avgRounds", bst.avgRounds); battle.set("avgDmgDealt", bst.avgDmgDealt);
+    battle.set("avgDmgTaken", bst.avgDmgTaken); out.set("battle", battle);
+    out.set("total", finalScore(bst.winRate, rs));
+    jq::Json arr = jq::Json::array(); for (int i = 0; i < 3; ++i) arr.push_back((double)std::max(0,std::min(5,stars[i])));
+    out.set("redStars", arr); out.set("tacticLevel", 10.0);
+    jq::Json multipliers = jq::Json::array();
+    for (int i = 0; i < 3; ++i) multipliers.push_back(1.0 + 0.02 * std::max(0, std::min(5, stars[i])));
+    out.set("redStarAttributeMultiplier", multipliers);
+    out.set("battleWinRateWithRedStars", bst.winRate);
+    out.set("evidence", "红度属性副本 + 8回合蒙特卡洛");
+    return out;
 }
 
 } // namespace
@@ -137,7 +170,7 @@ jq::Json evaluateTeamImpl(int id1, int id2, int id3, int troop = -1) {
 
 API_EXPORT const char* get_version() {
     sgz::ensureLoaded();
-    return sgz::dupStr("sgzzlb 0.1.0");
+    return sgz::dupStr("sgzzlb 0.2.0");
 }
 
 // 加载数据文件；path 为 NULL/空时尝试默认路径，失败回退内置数据。
@@ -194,6 +227,139 @@ API_EXPORT const char* recommend_teams(int top_n) {
     return sgz::dupJson(sgz::recommendToJson(entries));
 }
 
+// 为指定武将比较单个传承战法：固定两名队友、兵种和主将位，逐个实战模拟排序。
+API_EXPORT const char* recommend_tactics(int hero_id, int teammate1_id, int teammate2_id,
+                                          int top_n, int sims) {
+    sgz::ensureLoaded();
+    auto& st = sgz::store();
+    const sgz::Hero* h0 = st.heroByIndex(hero_id);
+    const sgz::Hero* h1 = st.heroByIndex(teammate1_id);
+    const sgz::Hero* h2 = st.heroByIndex(teammate2_id);
+    jq::Json error = jq::Json::object();
+    if (!h0 || !h1 || !h2) { error.set("ok", false); error.set("error", "武将下标越界"); return sgz::dupJson(error); }
+    if (top_n < 1) top_n = 10;
+    if (sims < 20) sims = 200;
+
+    sgz::TeamConfig ref;
+    if (!sgz::buildReferenceTeam(ref)) { error.set("ok", false); error.set("error", "参考队伍不可用"); return sgz::dupJson(error); }
+    sgz::TeamConfig base;
+    base.hero[0] = h0; base.hero[1] = h1; base.hero[2] = h2;
+    base.mainIdx = 0; base.troop = sgz::bestTroopType(base.hero); base.tacticLevel = 10;
+    std::vector<jq::Json> rows;
+    for (const sgz::Tactic& tactic : st.tactics) {
+        if (!tactic.isInheritable() || !tactic.isCombat() || !tactic.fitsTroop(base.troop)) continue;
+        sgz::TeamConfig tc = base;
+        tc.slots[0].push_back(&tactic);
+        sgz::warmTacticCache();
+        sgz::BattleStats battle = sgz::simulateBattle(tc, ref, sims,
+            static_cast<unsigned>(hero_id * 73856093u ^ teammate1_id * 19349663u ^
+                                  teammate2_id * 83492791u ^ std::hash<std::string>{}(tactic.name)));
+        sgz::HeroRole role = sgz::classifyHeroRole(*h0);
+        double fit = sgz::tacticFitScore(*h0, role, tactic);
+        jq::Json row = jq::Json::object();
+        row.set("name", tactic.name); row.set("type", tactic.type);
+        row.set("winRate", battle.winRate); row.set("sims", (double)battle.sims);
+        row.set("avgDmgDealt", battle.avgDmgDealt); row.set("fitScore", fit);
+        row.set("evidence", "固定队友 + 8回合蒙特卡洛实战");
+        rows.push_back(row);
+    }
+    std::sort(rows.begin(), rows.end(), [](const jq::Json& a, const jq::Json& b) {
+        return a.get("winRate").asNumber() > b.get("winRate").asNumber();
+    });
+    if ((int)rows.size() > top_n) rows.resize((size_t)top_n);
+    jq::Json out = jq::Json::object(); out.set("ok", true); out.set("heroId", (double)hero_id);
+    jq::Json teammates = jq::Json::array();
+    teammates.push_back((double)teammate1_id); teammates.push_back((double)teammate2_id);
+    out.set("teammates", teammates);
+    out.set("troop", std::string(sgz::troopNameCN(base.troop)));
+    jq::Json result = jq::Json::array(); for (const auto& row : rows) result.push_back(row);
+    out.set("recommendations", result); out.set("evidence", "按实际对战胜率降序，规则契合分仅作参考");
+    return sgz::dupJson(out);
+}
+
+// 按用户红度评估；stars 取 0..5，超界值会截断。
+API_EXPORT const char* evaluate_team_stars(int id1, int id2, int id3, int stars1, int stars2, int stars3) {
+    sgz::ensureLoaded();
+    const int stars[3] = {stars1, stars2, stars3};
+    return sgz::dupJson(sgz::evaluateTeamStarsImpl(id1, id2, id3, stars));
+}
+
+// 仅从本地账号已拥有的武将中推荐；红度会进入候选的实战模拟。
+API_EXPORT const char* recommend_account_teams(const char* account_id, int top_n) {
+    sgz::ensureLoaded();
+    sgz::LocalAccount account;
+    jq::Json err = jq::Json::object();
+    if (!sgz::getAccount(account_id ? account_id : "", account)) {
+        err.set("ok", false); err.set("error", "本地账号不存在"); return sgz::dupJson(err);
+    }
+    std::vector<int> owned;
+    for (const auto& h : account.heroes) owned.push_back(h.first);
+    std::sort(owned.begin(), owned.end());
+    if (top_n < 1) top_n = 10;
+    auto entries = sgz::recommendTeams(top_n, 200, 200, &owned, &account.heroes);
+    jq::Json out = jq::Json::object(); out.set("ok", true); out.set("accountId", account.id);
+    out.set("recommendations", sgz::recommendToJson(entries));
+    out.set("evidence", "只枚举已拥有武将，红度属性进入8回合蒙特卡洛");
+    return sgz::dupJson(out);
+}
+
+API_EXPORT const char* get_tactic_max_level(const char* name) {
+    sgz::ensureLoaded();
+    jq::Json out = jq::Json::object();
+    const sgz::Tactic* t = sgz::store().tacticByName(name ? name : "");
+    if (!t) { out.set("ok", false); out.set("error", "战法不存在"); return sgz::dupJson(out); }
+    out = sgz::tacticToJson(*t); out.set("ok", true); out.set("level", 10.0);
+    out.set("sourceLevel", 1.0); out.set("numericMultiplier", 2.0);
+    out.set("model", "数值型效果按 1级->10级线性倍率 1.0->2.0；概率与回合数保持原值");
+    return sgz::dupJson(out);
+}
+
+API_EXPORT const char* get_tactics_max_level() {
+    sgz::ensureLoaded();
+    jq::Json arr = jq::Json::array();
+    for (const sgz::Tactic& t : sgz::store().tactics) {
+        jq::Json j = sgz::tacticToJson(t); j.set("level", 10.0); j.set("numericMultiplier", 2.0); arr.push_back(j);
+    }
+    return sgz::dupJson(arr);
+}
+
+API_EXPORT const char* create_local_account(const char* name) {
+    sgz::ensureLoaded();
+    std::string id = sgz::createAccount(name ? name : ""); sgz::LocalAccount a;
+    sgz::getAccount(id, a); jq::Json out = sgz::accountToJson(a); out.set("ok", true);
+    return sgz::dupJson(out);
+}
+
+API_EXPORT const char* set_local_account_hero(const char* account_id, int hero_id, int stars, int owned) {
+    sgz::ensureLoaded(); jq::Json out = jq::Json::object();
+    bool ok = sgz::setAccountHero(account_id ? account_id : "", hero_id, stars, owned != 0);
+    out.set("ok", ok);
+    if (!ok) out.set("error", "账号不存在或武将下标越界");
+    else { sgz::LocalAccount a; sgz::getAccount(account_id, a); out = sgz::accountToJson(a); out.set("ok", true); }
+    return sgz::dupJson(out);
+}
+
+API_EXPORT const char* get_local_account(const char* account_id) {
+    sgz::ensureLoaded(); sgz::LocalAccount a; jq::Json out = jq::Json::object();
+    if (!sgz::getAccount(account_id ? account_id : "", a)) { out.set("ok", false); out.set("error", "本地账号不存在"); }
+    else { out = sgz::accountToJson(a); out.set("ok", true); }
+    return sgz::dupJson(out);
+}
+
+API_EXPORT const char* list_local_accounts() {
+    sgz::ensureLoaded(); return sgz::dupJson(sgz::accountsToJson());
+}
+
+API_EXPORT const char* save_local_accounts(const char* path) {
+    std::string error; bool ok = sgz::saveAccounts(path, error); jq::Json out = jq::Json::object();
+    out.set("ok", ok); if (!ok) out.set("error", error); else out.set("path", path ? path : ""); return sgz::dupJson(out);
+}
+
+API_EXPORT const char* load_local_accounts(const char* path) {
+    sgz::ensureLoaded(); std::string error; bool ok = sgz::loadAccounts(path, error); jq::Json out = jq::Json::object();
+    out.set("ok", ok); if (!ok) out.set("error", error); else out.set("accounts", sgz::accountsToJson()); return sgz::dupJson(out);
+}
+
 // 英雄列表（GUI 用）：返回紧凑 JSON 数组
 API_EXPORT const char* get_heroes() {
     sgz::ensureLoaded();
@@ -232,6 +398,8 @@ API_EXPORT const char* get_tactics() {
         o.set("category", t.category);
         o.set("quality", t.quality);
         o.set("triggerRate", t.triggerRate);
+        o.set("level", 10.0);
+        o.set("numericMultiplier", 2.0);
         a.push_back(o);
     }
     return sgz::dupJson(a);
