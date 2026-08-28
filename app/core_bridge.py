@@ -67,11 +67,13 @@ class CoreBridge:
     def _configure(self):
         lib = self._lib
         for name in ("get_version", "load_data", "reload_data", "evaluate_team",
-                     "evaluate_team_troop", "recommend_teams", "recommend_account_teams",
+                     "evaluate_team_troop", "evaluate_team_main", "evaluate_team_references",
+                     "recommend_teams", "recommend_account_teams",
                      "recommend_tactics",
                      "evaluate_team_stars", "get_tactic_max_level", "get_tactics_max_level",
                      "evaluate_team_build",
                      "create_local_account", "set_local_account_hero", "get_local_account",
+                     "set_local_account_tactic",
                      "list_local_accounts", "save_local_accounts", "load_local_accounts",
                      "get_heroes", "get_tactics"):
             getattr(lib, name).restype = ctypes.c_void_p
@@ -80,6 +82,10 @@ class CoreBridge:
         lib.reload_data.argtypes = [ctypes.c_char_p]
         lib.evaluate_team.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_int]
         lib.evaluate_team_troop.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int]
+        lib.evaluate_team_main.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_int,
+                                           ctypes.c_int, ctypes.c_int]
+        lib.evaluate_team_references.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_int,
+                                                 ctypes.c_int, ctypes.c_int, ctypes.c_int]
         lib.recommend_teams.argtypes = [ctypes.c_int]
         lib.recommend_tactics.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_int,
                                           ctypes.c_int, ctypes.c_int]
@@ -90,6 +96,7 @@ class CoreBridge:
         lib.get_tactic_max_level.argtypes = [ctypes.c_char_p]
         lib.create_local_account.argtypes = [ctypes.c_char_p]
         lib.set_local_account_hero.argtypes = [ctypes.c_char_p, ctypes.c_int, ctypes.c_int, ctypes.c_int]
+        lib.set_local_account_tactic.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_int]
         lib.get_local_account.argtypes = [ctypes.c_char_p]
         lib.save_local_accounts.argtypes = [ctypes.c_char_p]
         lib.load_local_accounts.argtypes = [ctypes.c_char_p]
@@ -146,13 +153,20 @@ class CoreBridge:
                 return h["id"]
         return None
 
-    def evaluate_team(self, id1, id2, id3, troop=-1) -> dict:
-        """评估队伍。troop: -1 自动，0=骑 1=盾 2=弓 3=枪。返回完整报告 dict。"""
-        raw = self._call(self._lib.evaluate_team_troop, int(id1), int(id2), int(id3), int(troop))
+    def evaluate_team(self, id1, id2, id3, troop=-1, main_idx=0) -> dict:
+        """评估队伍。troop: -1 自动，0=骑 1=盾 2=弓 3=枪；main_idx: 主将槽位 0..2。"""
+        raw = self._call(self._lib.evaluate_team_main, int(id1), int(id2), int(id3),
+                         int(troop), int(main_idx))
         return json.loads(raw)
 
     def recommend_teams(self, top_n=10) -> list:
         raw = self._call(self._lib.recommend_teams, int(top_n))
+        return json.loads(raw)
+
+    def evaluate_team_references(self, id1, id2, id3, troop=-1, main_idx=0, sims=200) -> dict:
+        """对多套固定参考队分别评估，并返回平均/最低胜率。"""
+        raw = self._call(self._lib.evaluate_team_references, int(id1), int(id2), int(id3),
+                         int(troop), int(main_idx), int(sims))
         return json.loads(raw)
 
     def recommend_tactics(self, hero_id: int, teammate1_id: int, teammate2_id: int,
@@ -190,6 +204,12 @@ class CoreBridge:
         """新增、更新或移除本地账号的武将；红度在核心侧截断到 0..5。"""
         raw = self._call(self._lib.set_local_account_hero, account_id.encode("utf-8"),
                          int(hero_id), int(stars), 1 if owned else 0)
+        return json.loads(raw)
+
+    def set_local_account_tactic(self, account_id: str, tactic_name: str, owned=True) -> dict:
+        """新增或移除账号战法池中的一项可配装传承战法。"""
+        raw = self._call(self._lib.set_local_account_tactic, account_id.encode("utf-8"),
+                         tactic_name.encode("utf-8"), 1 if owned else 0)
         return json.loads(raw)
 
     def get_local_account(self, account_id: str) -> dict:

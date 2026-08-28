@@ -29,6 +29,9 @@ struct RuleScore {
     double total = 0;      // 加权总分 0-100
     bool costOverflow = false;
     int costSum = 0;
+    // 多参考队实战结果（战损比越高分越高）
+    double casualtyRatio = 0;
+    double casualtyScore = 0;
 };
 RuleScore ruleScore(const TeamConfig& tc);
 
@@ -40,5 +43,6 @@ std::vector<std::string> buildAdvice(const TeamConfig& tc, const BattleStats& st
 
 // 最终综合评分（0-100）：战斗胜率 70% + 规则分 30%
 double finalScore(double winRate, const RuleScore& rs);
+double finalScore(const BattleStats& battle, const RuleScore& rs);
 
 } // namespace sgz

@@ -111,6 +111,10 @@ class App:
         self.troop_var = tk.StringVar(value="自动")
         ttk.Combobox(ctl, textvariable=self.troop_var, values=[t[0] for t in TROOP_OPTIONS],
                      width=6, state="readonly").pack(side=tk.LEFT, padx=(2, 10))
+        ttk.Label(ctl, text="主将").pack(side=tk.LEFT)
+        self.main_idx_var = tk.StringVar(value="槽位 1")
+        ttk.Combobox(ctl, textvariable=self.main_idx_var, values=["槽位 1", "槽位 2", "槽位 3"],
+                     width=6, state="readonly").pack(side=tk.LEFT, padx=(2, 10))
         ttk.Button(ctl, text="评估", command=self.evaluate).pack(side=tk.LEFT, padx=2)
         ttk.Button(ctl, text="推荐 Top10", command=self.recommend).pack(side=tk.LEFT, padx=2)
         ttk.Button(ctl, text="清空槽位", command=self.clear_slots).pack(side=tk.LEFT, padx=2)
@@ -133,11 +137,13 @@ class App:
         nb.add(rec_frame, text="推荐 Top-N")
         self.rec_tree = ttk.Treeview(
             rec_frame,
-            columns=("rank", "total", "win", "rule", "troop", "cost", "team"),
+            columns=("rank", "total", "win", "draw", "error", "rule", "troop", "cost", "team"),
             show="headings")
         self.rec_tree.heading("rank", text="排名")
         self.rec_tree.heading("total", text="综合分")
         self.rec_tree.heading("win", text="胜率%")
+        self.rec_tree.heading("draw", text="平局%")
+        self.rec_tree.heading("error", text="误差%")
         self.rec_tree.heading("rule", text="规则分")
         self.rec_tree.heading("troop", text="兵种")
         self.rec_tree.heading("cost", text="统御")
@@ -145,6 +151,8 @@ class App:
         self.rec_tree.column("rank", width=46, anchor="center")
         self.rec_tree.column("total", width=56, anchor="center")
         self.rec_tree.column("win", width=56, anchor="center")
+        self.rec_tree.column("draw", width=56, anchor="center")
+        self.rec_tree.column("error", width=56, anchor="center")
         self.rec_tree.column("rule", width=56, anchor="center")
         self.rec_tree.column("troop", width=46, anchor="center")
         self.rec_tree.column("cost", width=46, anchor="center")
@@ -208,8 +216,9 @@ class App:
             self.set_status("请先在 3 个槽位选满武将")
             return
         troop = next(t[1] for t in TROOP_OPTIONS if t[0] == self.troop_var.get())
+        main_idx = ["槽位 1", "槽位 2", "槽位 3"].index(self.main_idx_var.get())
         self.set_status("评估中...")
-        self._bg(lambda: self.bridge.evaluate_team(ids[0], ids[1], ids[2], troop),
+        self._bg(lambda: self.bridge.evaluate_team(ids[0], ids[1], ids[2], troop, main_idx),
                  self._show_report)
 
     def _show_report(self, rep):
@@ -225,7 +234,8 @@ class App:
         b = rep["battle"]
         lines = []
         lines.append(f"综合评分：{rep['total']:.1f} / 100")
-        lines.append(f"阵容：{' / '.join(rep['names'])}   兵种：{rep['troop']}   统御：{rep['cost']}/20")
+        lines.append(f"阵容：{' / '.join(rep['names'])}   主将：{rep.get('mainName', rep['names'][0])}   "
+                     f"兵种：{rep['troop']}   统御：{rep['cost']}/20")
         lines.append("")
         lines.append("【评分分解】")
         lines.append(f"  兵种适性 {rs['aptitude']:.0f}  国家 {rs['kingdom']:.0f}  "
@@ -244,6 +254,11 @@ class App:
             lines.append("【战斗统计】（vs 桃园）")
             lines.append(f"  模拟 {b['sims']} 场：胜率 {b['winRate'] * 100:.1f}%   "
                          f"场均输出 {b['avgDmgDealt']:.0f}  场均承伤 {b['avgDmgTaken']:.0f}")
+            lines.append(f"  平局率 {b.get('drawRate', 0) * 100:.1f}%   "
+                         f"胜率标准误 +/-{b.get('winRateStdError', 0) * 100:.1f}%")
+            lines.append(f"  95%区间 [{b.get('winRateCi95Low', 0) * 100:.1f}%, "
+                         f"{b.get('winRateCi95High', 0) * 100:.1f}%]   种子 {b.get('seed', 0)}")
+            lines.append("  说明：结果仅表示当前简化规则下对固定桃园参考队的比较。")
         if rep.get("synergies"):
             lines.append("")
             lines.append("【战法联动】")
@@ -270,9 +285,13 @@ class App:
         self.rec_cache.clear()
         for i, r in enumerate(recs):
             names = [self.bridge.hero_by_id(x)["name"] for x in r["heroes"]]
+            if names:
+                names[0] = f"主{names[0]}"
             team = " / ".join(names)
             iid = self.rec_tree.insert("", tk.END, values=(
                 i + 1, f"{r['total']:.1f}", f"{r['winRate'] * 100:.1f}",
+                f"{r.get('drawRate', 0) * 100:.1f}",
+                f"{r.get('winRateStdError', 0) * 100:.1f}",
                 f"{r['rule']:.1f}", r["troop"], r["cost"], team))
             self.rec_cache[iid] = r
         self.nb.select(1)
@@ -285,6 +304,7 @@ class App:
             return
         for i in range(3):
             self.slots[i] = self.bridge.hero_by_id(r["heroes"][i])
+        self.main_idx_var.set("槽位 1")
         self.set_active_slot(0)
         self.nb.select(0)
         self.evaluate()

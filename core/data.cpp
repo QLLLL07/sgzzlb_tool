@@ -90,6 +90,14 @@ Tactic parseTactic(const jq::Json& j) {
     return t;
 }
 
+static std::string maxLevelLookupName(std::string name) {
+    const std::string selfSuffix = "-自带";
+    if (name.size() >= selfSuffix.size() &&
+        name.compare(name.size() - selfSuffix.size(), selfSuffix.size(), selfSuffix) == 0)
+        name.resize(name.size() - selfSuffix.size());
+    return name;
+}
+
 bool loadDataFromJson(const jq::Json& root) {
     DataStore ds;
     const jq::Json& hs = root.get("heroes");
@@ -109,6 +117,25 @@ bool loadDataFromJson(const jq::Json& root) {
             if (ds.tacticNameIdx.count(t.name)) continue;
             ds.tacticNameIdx[t.name] = (int)ds.tactics.size();
             ds.tactics.push_back(std::move(t));
+        }
+    }
+    // Lv10 资料独立于原始战法表维护。当前资料名使用兵种基础名，
+    // 因此“虎豹骑-自带”等条目也会继承“虎豹骑”的同一份等级资料。
+    const jq::Json& maxLevels = root.get("tacticMaxLevels");
+    if (maxLevels.isArray()) {
+        std::unordered_map<std::string, const jq::Json*> byName;
+        for (size_t i = 0; i < maxLevels.size(); ++i) {
+            const std::string name = maxLevels[i].get("name").asString();
+            if (!name.empty() && !byName.count(name)) byName[name] = &maxLevels[i];
+        }
+        for (Tactic& t : ds.tactics) {
+            auto it = byName.find(maxLevelLookupName(t.name));
+            if (it == byName.end()) continue;
+            const jq::Json& level = *it->second;
+            t.maxLevelDescription = level.get("description").asString();
+            t.maxLevelReliability = level.get("reliability").asString();
+            t.maxLevelVersionConflict = level.get("versionConflict").asBool(false);
+            t.hasMaxLevelData = !t.maxLevelDescription.empty();
         }
     }
     if (ds.heroes.empty()) return false;
@@ -189,6 +216,13 @@ jq::Json tacticToJson(const Tactic& t) {
     o.set("triggerRate", t.triggerRate);
     o.set("sourceHero", t.sourceHero);
     o.set("description", t.description);
+    jq::Json max = jq::Json::object();
+    max.set("available", t.hasMaxLevelData);
+    max.set("level", 10.0);
+    max.set("description", t.maxLevelDescription);
+    max.set("reliability", t.maxLevelReliability);
+    max.set("versionConflict", t.maxLevelVersionConflict);
+    o.set("maxLevel", max);
     jq::Json vt = jq::Json::array();
     for (auto& v : t.validTroops) vt.push_back(v);
     o.set("validTroops", vt);

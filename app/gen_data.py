@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """生成运行时数据：
-1. data/data.json           —— 合并后的全量数据 {"heroes":[...],"tactics":[...]}（C++ 库加载用）
+1. data/data.json           —— 合并后的全量数据（含 Lv10 战法资料，C++ 库加载用）
 2. core/builtin_fallback.hpp —— 内置回退数据（≥10 个示例武将 + 相关战法），
    当外部数据文件缺失时由 C++ 库加载。
 """
@@ -12,6 +12,7 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA = os.path.join(ROOT, "data")
 CORE = os.path.join(ROOT, "core")
+MAX_LEVELS = os.path.join(DATA, "tactic_max_levels.json")
 
 # 精选 12 个名将（覆盖四阵营 + 桃园/魏法/吴火等经典体系）
 FALLBACK_HEROES = [
@@ -70,9 +71,13 @@ def build_fallback(heroes, tactics):
 def main():
     heroes = json.load(open(os.path.join(DATA, "heroes.json"), encoding="utf-8"))
     tactics = json.load(open(os.path.join(DATA, "tactics.json"), encoding="utf-8"))
+    if not os.path.exists(MAX_LEVELS):
+        raise FileNotFoundError(f"缺少 Lv10 战法数据：{MAX_LEVELS}；请先运行 app/import_max_tactics.py")
+    max_levels = json.load(open(MAX_LEVELS, encoding="utf-8"))
 
     # 1) 合并全量数据
-    combined = {"heroes": heroes, "tactics": tactics}
+    combined = {"heroes": heroes, "tactics": tactics,
+                "tacticMaxLevels": max_levels.get("entries", [])}
     with open(os.path.join(DATA, "data.json"), "w", encoding="utf-8") as f:
         json.dump(combined, f, ensure_ascii=False, indent=1)
 
@@ -90,7 +95,8 @@ def main():
     with open(os.path.join(CORE, "builtin_fallback.hpp"), "w", encoding="utf-8") as f:
         f.write(header)
 
-    print(f"[gen_data] data/data.json: {len(heroes)} heroes, {len(tactics)} tactics")
+    print(f"[gen_data] data/data.json: {len(heroes)} heroes, {len(tactics)} tactics, "
+          f"{len(max_levels.get('entries', []))} Lv10 tactic entries")
     print(f"[gen_data] builtin_fallback.hpp: {len(fb['heroes'])} heroes, {len(fb['tactics'])} tactics")
     return 0
 

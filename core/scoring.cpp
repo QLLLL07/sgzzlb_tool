@@ -176,8 +176,8 @@ std::vector<std::string> buildAdvice(const TeamConfig& tc, const BattleStats& st
     if (!hasHeal) adv.push_back("⚠ 缺少治疗/续航");
     if (st.sims > 0) {
         char buf[128];
-        snprintf(buf, sizeof(buf), "战斗模拟（%d场 vs 桃园）：胜率 %.1f%%，场均输出 %.0f，场均承伤 %.0f",
-                 st.sims, st.winRate * 100, st.avgDmgDealt, st.avgDmgTaken);
+        snprintf(buf, sizeof(buf), "战斗模拟（%d场，多参考队）：胜率 %.1f%%，战损比 %.2f，战损评分 %.1f",
+                 st.sims, st.winRate * 100, st.avgCasualtyRatio, st.casualtyScore);
         adv.push_back(buf);
     }
     return adv;
@@ -186,6 +186,15 @@ std::vector<std::string> buildAdvice(const TeamConfig& tc, const BattleStats& st
 double finalScore(double winRate, const RuleScore& rs) {
     double battle = winRate * 100.0;
     double s = 0.70 * battle + 0.30 * rs.total;
+    if (s < 0) s = 0;
+    if (s > 100) s = 100;
+    return s;
+}
+
+double finalScore(const BattleStats& battle, const RuleScore& rs) {
+    // 战损比是实战主指标：同样获胜时，消耗更少兵力的队伍得分更高。
+    // 规则分仅用于统御、适性等无法由短回合战斗稳定体现的约束。
+    double s = 0.80 * battle.casualtyScore + 0.20 * rs.total;
     if (s < 0) s = 0;
     if (s > 100) s = 100;
     return s;

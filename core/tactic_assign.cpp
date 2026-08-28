@@ -129,7 +129,7 @@ double tacticFitScore(const Hero& h, const HeroRole& role, const Tactic& t) {
     return score;
 }
 
-void assignTactics(TeamConfig& tc) {
+void assignTactics(TeamConfig& tc, const std::unordered_set<std::string>* allowedTactics) {
     auto& st = store();
     int assigned[3] = {0, 0, 0};
     std::vector<std::string> got[3];
@@ -137,6 +137,14 @@ void assignTactics(TeamConfig& tc) {
 
     auto isUsed = [&](const Tactic* t) {
         for (const Tactic* u : used) if (u->name == t->name) return true;
+        return false;
+    };
+    auto hasTeamType = [&](const std::string& type) {
+        for (const Tactic* t : used) if (t->type == type) return true;
+        for (int i = 0; i < 3; ++i) {
+            const Tactic* innate = st.tacticByName(tc.hero[i]->innate.name);
+            if (innate && innate->type == type) return true;
+        }
         return false;
     };
 
@@ -151,10 +159,13 @@ void assignTactics(TeamConfig& tc) {
             HeroRole role = classifyHeroRole(h);
             for (const Tactic& t : st.tactics) {
                 if (!t.isInheritable() || !t.isCombat()) continue;
+                if (allowedTactics && !allowedTactics->count(t.name)) continue;
                 if (!t.fitsTroop(tc.troop)) continue;
                 if (t.name == h.innate.name) continue;              // 不用自带
                 if (h.hasInherit && t.name == h.inherit.name) continue; // 不用自身传承
                 if (isUsed(&t)) continue;
+                // 阵法和兵种战法都是队伍级效果，一支队伍只能装备一个。
+                if ((t.type == "阵法" || t.type == "兵种") && hasTeamType(t.type)) continue;
                 double s = tacticFitScore(h, role, t) + synergyBonus(&t, got, tc.hero);
                 if (s > bestScore) { bestScore = s; bestIdx = i; bestT = &t; }
             }

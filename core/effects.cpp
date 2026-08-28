@@ -169,6 +169,7 @@ void classifyClause(const std::string& clause, std::vector<Effect>& out, std::st
         e.selfOnly = selfOnly || contains(clause, "自身") || contains(clause, "自己") || contains(clause, "恢复兵力最多的我军单体");
         e.intScaling = intS;
         e.chance = 1.0;
+        if (contains(clause, "损失兵力最多")) e.targetMode = Effect::MOST_WOUNDED;
         for (double p : pcts) {
             if (p >= 1 && p <= 100 && (contains(clause, "概率") || contains(clause, "几率"))) {
                 e.chance = p / 100.0;
@@ -407,28 +408,29 @@ std::unordered_map<std::string, TacticEffects> curatedTable() {
     };
     TacticEffects t;
 
-    // 盛气凌敌：前2回合，敌军群体2人每回合45%缴械
+    // 以下条目使用已确认的 Lv10 数值，不能再在战斗期线性放大。
+    // 盛气凌敌：前2回合，敌军群体2人每回合90%缴械
     t = TacticEffects();
-    Scheduled s; s.firstNRounds = 2; s.effects = {status(St::JIE_XIE, 2, 0.45, 1)};
-    t.scheduled.push_back(s); t.parseOk = true; t.note = "精确";
+    Scheduled s; s.firstNRounds = 2; s.effects = {status(St::JIE_XIE, 2, 0.90, 1)};
+    t.scheduled.push_back(s); t.parseOk = true; t.ratesAreMaxLevel = true; t.note = "Lv10 精确";
     m["盛气凌敌"] = t;
 
-    // 横扫千军：全体兵刃50%，缴械/计穷目标20%震慑
+    // 横扫千军：全体兵刃100%，缴械/计穷目标30%震慑
     t = TacticEffects();
-    Effect e1 = dmgP(50, 0);
+    Effect e1 = dmgP(100, 0);
     Effect e2; e2.kind = Effect::E_STATUS; e2.statuses = {St::ZHEN_SHE};
-    e2.count = 0; e2.chance = 0.2; e2.duration = 1; e2.onEnemy = true;
+    e2.count = 0; e2.chance = 0.3; e2.duration = 1; e2.onEnemy = true;
     e2.requiresStatus = {St::JIE_XIE, St::JI_QIONG};
-    t.cast = {e1, e2}; t.triggerRate = 0.45; t.parseOk = true; t.note = "精确";
+    t.cast = {e1, e2}; t.triggerRate = 0.40; t.parseOk = true; t.ratesAreMaxLevel = true; t.note = "Lv10 精确";
     m["横扫千军"] = t;
 
-    // 燕人咆哮：第2、4回合全体兵刃52%，缴械目标降统率25%
+    // 燕人咆哮：第2、4回合全体兵刃104%，缴械目标降统率50%
     t = TacticEffects();
-    Effect dm = statModEnemy(2, -25, 2);
+    Effect dm = statModEnemy(2, -50, 2);
     dm.requiresStatus = {St::JIE_XIE};
-    Scheduled s1; s1.atRounds = {1}; s1.effects = {dmgP(52, 0), dm};
-    Scheduled s2; s2.atRounds = {3}; s2.effects = {dmgP(52, 0), dm};
-    t.scheduled = {s1, s2}; t.parseOk = true; t.note = "精确";
+    Scheduled s1; s1.atRounds = {1}; s1.effects = {dmgP(104, 0), dm};
+    Scheduled s2; s2.atRounds = {3}; s2.effects = {dmgP(104, 0), dm};
+    t.scheduled = {s1, s2}; t.parseOk = true; t.ratesAreMaxLevel = true; t.note = "Lv10 精确";
     m["燕人咆哮"] = t;
 
     // 火烧连营：35%，单体灼烧41%(受智力)3回合×2；已有灼烧→焚营全体谋略31%
@@ -438,11 +440,11 @@ std::unordered_map<std::string, TacticEffects> curatedTable() {
     t.cast = {b1, b1, b2}; t.triggerRate = 0.35; t.parseOk = true; t.note = "精确";
     m["火烧连营"] = t;
 
-    // 风助火势：40%，单体谋略77%(受智力)，灼烧目标额外谋略99%
+    // 风助火势：45%，单体谋略154%(受智力)，灼烧目标额外谋略198%
     t = TacticEffects();
-    Effect c1 = dmgM(77, 1, true);
-    Effect c2 = dmgM(99, 1, true); c2.requiresStatus = {St::BURN};
-    t.cast = {c1, c2}; t.triggerRate = 0.40; t.parseOk = true; t.note = "精确";
+    Effect c1 = dmgM(154, 1, true);
+    Effect c2 = dmgM(198, 1, true); c2.requiresStatus = {St::BURN};
+    t.cast = {c1, c2}; t.triggerRate = 0.45; t.parseOk = true; t.ratesAreMaxLevel = true; t.note = "Lv10 精确";
     m["风助火势"] = t;
 
     // 威震华夏：35%准备1回合，全体猛攻146%，50%缴械/计穷，自身兵刃伤害+36%2回合
@@ -454,60 +456,61 @@ std::unordered_map<std::string, TacticEffects> curatedTable() {
     t.cast = {w1, w2, w3}; t.triggerRate = 0.35; t.needsCharge = true; t.parseOk = true; t.note = "精确";
     m["威震华夏"] = t;
 
-    // 一骑当千：突击45%，普攻后全体兵刃36%
+    // 一骑当千：突击30%，普攻后全体兵刃72%
     t = TacticEffects();
-    t.cast = {dmgP(36, 0)}; t.triggerRate = 0.45; t.parseOk = true; t.note = "精确";
+    t.cast = {dmgP(72, 0)}; t.triggerRate = 0.30; t.parseOk = true; t.ratesAreMaxLevel = true; t.note = "Lv10 精确";
     m["一骑当千"] = t;
 
-    // 刮骨疗毒：40%，清除负面并治疗兵力损失最多单体128%
+    // 刮骨疗毒：40%，清除负面并治疗兵力损失最多单体256%
     t = TacticEffects();
-    Effect g1 = heal(128, 1, true);
+    Effect g1 = heal(256, 1, true);
+    g1.targetMode = Effect::MOST_WOUNDED;
     Effect g2; g2.kind = Effect::E_CLEANSE; g2.onEnemy = false;
-    t.cast = {g1, g2}; t.triggerRate = 0.40; t.parseOk = true; t.note = "精确";
+    t.cast = {g1, g2}; t.triggerRate = 0.40; t.parseOk = true; t.ratesAreMaxLevel = true; t.note = "Lv10 精确";
     m["刮骨疗毒"] = t;
 
-    // 暂避其锋：前3回合，我方智力最高兵刃减伤20%(受智力)，武力最高谋略减伤20%
+    // 暂避其锋：前3回合，我方智力最高兵刃减伤40%(受智力)，武力最高谋略减伤40%
     t = TacticEffects();
     Scheduled z1; z1.firstNRounds = 3;
-    Effect z1a = defUp(20, 1); z1a.selfOnly = true; z1a.intScaling = true;
+    Effect z1a = defUp(40, 1); z1a.selfOnly = true; z1a.intScaling = true;
     z1.effects = {z1a};
-    t.scheduled.push_back(z1); t.parseOk = true; t.note = "精确(简化为全体)";
+    t.scheduled.push_back(z1); t.parseOk = true; t.ratesAreMaxLevel = true; t.note = "Lv10 精确(简化为全体)";
     m["暂避其锋"] = t;
 
-    // 锋矢阵：主将增伤15%受伤害+20%；副将伤害-15%受伤害-12.5%
+    // 锋矢阵：主将增伤30%受伤害+20%；副将伤害-15%受伤害-25%
     t = TacticEffects();
-    Effect f1 = atkUp(15, 8); f1.mainOnly = true;
+    Effect f1 = atkUp(30, 8); f1.mainOnly = true;
     Effect f2; f2.kind = Effect::E_DEF_UP; f2.rate = -20; f2.duration = 8; f2.mainOnly = true; f2.onEnemy = false;
     Effect f3 = atkUp(-15, 8); f3.deputyOnly = true;
-    Effect f4 = defUp(12.5, 8); f4.deputyOnly = true;
-    t.permanent = {f1, f2, f3, f4}; t.parseOk = true; t.note = "精确";
+    Effect f4 = defUp(25, 8); f4.deputyOnly = true;
+    t.permanent = {f1, f2, f3, f4}; t.parseOk = true; t.ratesAreMaxLevel = true; t.note = "Lv10 精确";
     m["锋矢阵"] = t;
 
-    // 八门金锁阵：前3回合敌军群体2人伤害降低15%，主将先攻
+    // 八门金锁阵：前3回合敌军群体2人伤害降低30%，主将先攻
     t = TacticEffects();
     Scheduled bm1; bm1.firstNRounds = 3;
-    Effect bm1a; bm1a.kind = Effect::E_VULN; bm1a.rate = -15; bm1a.duration = 1; bm1a.onEnemy = true; bm1a.intScaling = true;
+    Effect bm1a; bm1a.kind = Effect::E_VULN; bm1a.rate = -30; bm1a.duration = 1; bm1a.onEnemy = true; bm1a.intScaling = true;
     bm1.effects = {bm1a};
     Effect bm2; bm2.kind = Effect::E_FIRST_STRIKE; bm2.mainOnly = true; bm2.duration = 3; bm2.onEnemy = false;
-    t.scheduled = {bm1}; t.permanent = {bm2}; t.parseOk = true; t.note = "精确";
+    t.scheduled = {bm1}; t.permanent = {bm2}; t.parseOk = true; t.ratesAreMaxLevel = true; t.note = "Lv10 精确";
     m["八门金锁阵"] = t;
 
-    // 虎豹骑：全体武力+20，前3回合突击发动率+5%
+    // 虎豹骑：全体武力+40，前3回合突击发动率+10%
     t = TacticEffects();
-    Effect h1 = statModAlly(0, 20, true, 8);
-    Effect h2 = trigger(1, 5, 3);
+    Effect h1 = statModAlly(0, 40, true, 8);
+    Effect h2 = trigger(1, 10, 3);
     t.permanent = {h1};
     Scheduled hs; hs.firstNRounds = 3; hs.effects = {h2};
-    t.scheduled.push_back(hs); t.parseOk = true; t.note = "精确";
+    t.scheduled.push_back(hs); t.parseOk = true; t.ratesAreMaxLevel = true; t.note = "Lv10 精确";
     m["虎豹骑"] = t;
 
-    // 陷阵营：全体武力统率+11，前3回合受击30%概率治疗30%
+    // 陷阵营：全体武力统率+22，前3回合受击30%概率治疗60%
     t = TacticEffects();
-    Effect x1 = statModAlly(0, 11, true, 8);
-    Effect x2 = statModAlly(2, 11, true, 8);
-    Effect x3 = heal(30, 1, true); x3.chance = 0.3; x3.selfOnly = true;
+    Effect x1 = statModAlly(0, 22, true, 8);
+    Effect x2 = statModAlly(2, 22, true, 8);
+    Effect x3 = heal(60, 1, true); x3.chance = 0.3; x3.selfOnly = true;
     Scheduled xs; xs.firstNRounds = 3; xs.effects = {x3};
-    t.permanent = {x1, x2}; t.scheduled.push_back(xs); t.parseOk = true; t.note = "精确";
+    t.permanent = {x1, x2}; t.scheduled.push_back(xs); t.parseOk = true; t.ratesAreMaxLevel = true; t.note = "Lv10 精确";
     m["陷阵营"] = t;
 
     // 青囊：前4回合，我军群体2人统率+20(受智力)及急救50%治疗44%
@@ -525,27 +528,27 @@ std::unordered_map<std::string, TacticEffects> curatedTable() {
     t.cast = {y1, y2}; t.triggerRate = 0.35; t.parseOk = true; t.note = "精确";
     m["以逸待劳"] = t;
 
-    // 士别三日：前3回合减伤（规避简化为减伤），第4回合智力+34并对全体谋略90%
+    // 士别三日：前3回合减伤（规避简化为减伤），第4回合智力+68并对全体谋略180%
     t = TacticEffects();
-    Effect sby1 = defUp(25, 3);
-    Effect sby2 = statModAlly(1, 34, true, 8);
-    Effect sby3 = dmgM(90, 0, true);
+    Effect sby1 = defUp(30, 3);
+    Effect sby2 = statModAlly(1, 68, true, 8);
+    Effect sby3 = dmgM(180, 0, true);
     Scheduled sbys; sbys.atRounds = {3}; sbys.effects = {sby2, sby3};
-    t.permanent = {sby1}; t.scheduled.push_back(sbys); t.parseOk = true; t.note = "精确(规避→减伤)";
+    t.permanent = {sby1}; t.scheduled.push_back(sbys); t.parseOk = true; t.ratesAreMaxLevel = true; t.note = "Lv10 精确(规避→减伤)";
     m["士别三日"] = t;
 
-    // 奇计良谋：前3回合，敌武力最高兵刃减伤14%(受速度)，敌智力最高谋略减伤14%
+    // 奇计良谋：前3回合，敌武力最高兵刃减伤28%(受速度)，敌智力最高谋略减伤28%
     t = TacticEffects();
-    Effect j1a; j1a.kind = Effect::E_VULN; j1a.rate = -14; j1a.duration = 1; j1a.onEnemy = true; j1a.spdScaling = true;
+    Effect j1a; j1a.kind = Effect::E_VULN; j1a.rate = -28; j1a.duration = 1; j1a.onEnemy = true; j1a.spdScaling = true;
     Scheduled j1; j1.firstNRounds = 3; j1.effects = {j1a};
-    t.scheduled.push_back(j1); t.parseOk = true; t.note = "精确(简化为全体)";
+    t.scheduled.push_back(j1); t.parseOk = true; t.ratesAreMaxLevel = true; t.note = "Lv10 精确(简化为全体)";
     m["奇计良谋"] = t;
 
-    // 勇者得前：突击45%，普攻后获得1次抵御，并提升下一个主动战法伤害40%
+    // 勇者得前：突击45%，普攻后获得1次抵御，并提升下一个主动战法伤害80%
     t = TacticEffects();
     Effect u1; u1.kind = Effect::E_GUARD; u1.rate = 100; u1.selfOnly = true; u1.onEnemy = false;
-    Effect u2 = atkUp(40, 1); u2.selfOnly = true;
-    t.cast = {u1, u2}; t.triggerRate = 0.45; t.parseOk = true; t.note = "精确";
+    Effect u2 = atkUp(80, 1); u2.selfOnly = true;
+    t.cast = {u1, u2}; t.triggerRate = 0.45; t.parseOk = true; t.ratesAreMaxLevel = true; t.note = "Lv10 精确";
     m["勇者得前"] = t;
 
     return m;

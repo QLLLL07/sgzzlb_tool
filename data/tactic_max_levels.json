@@ -1,0 +1,1006 @@
+{
+  "source": "三国志战略版_满级战法数值大全.md",
+  "collectedAt": "2026-08-28",
+  "entries": [
+    {
+      "name": "暂避其锋",
+      "displayName": "暂避其锋",
+      "level": 10,
+      "description": "前3回合：我军**智力最高**武将受到兵刃伤害 -40%，我军**武力最高**武将受到谋略伤害 -40%（均受智力影响；减伤上限90%）。基础值 20%→满级 40%",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "盛气凌敌",
+      "displayName": "盛气凌敌",
+      "level": 10,
+      "description": "前2回合，敌军群体（2人）每回合 **90%** 几率陷入**缴械**。基础值 45%→90%",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "用武通神",
+      "displayName": "用武通神",
+      "level": 10,
+      "description": "第2/4/6/8回合对敌军群体（2人）造成谋略伤害：**75% / 105% / 135% / 165%**（受智力）；对2人合计 960%、对单体 480%",
+      "reliability": "partial",
+      "versionConflict": false
+    },
+    {
+      "name": "横戈跃马",
+      "displayName": "横戈跃马",
+      "level": 10,
+      "description": "**经典版**：前3回合双方谋略伤害 -30%、普通攻击/突击伤害 +20%（基础15%/10%）。**改版后**：前3回合谋略伤害 -15%~30%；第3回合起我军兵刃伤害 +10%~20%（受速度）",
+      "reliability": "partial",
+      "versionConflict": false
+    },
+    {
+      "name": "守而必固",
+      "displayName": "守而必固",
+      "level": 10,
+      "description": "战斗开始**嘲讽敌军主将**，自身统率 +40（基础20→40），持续4回合",
+      "reliability": "partial",
+      "versionConflict": false
+    },
+    {
+      "name": "奇计良谋",
+      "displayName": "奇计良谋",
+      "level": 10,
+      "description": "前3回合：敌军武力最高武将兵刃伤害 -28%、智力最高武将谋略伤害 -28%（受速度）。基础14%→28%",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "锋芒毕露",
+      "displayName": "锋芒毕露",
+      "level": 10,
+      "description": "我军群体准备发动「准备战法」时，**75%** 几率获得会心/奇谋提升，可叠加2次、每次15%，满级最高 **30%**，持续2回合。2026-02-11更新后目标改为全军3人",
+      "reliability": "partial",
+      "versionConflict": false
+    },
+    {
+      "name": "挫锐",
+      "displayName": "挫锐",
+      "level": 10,
+      "description": "前3回合敌军单体**虚弱**，攻击时 **65%** 几率无法造成伤害。基础32.5%→65%",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "舌战群儒",
+      "displayName": "舌战群儒",
+      "level": 10,
+      "description": "敌军尝试主动战法时 **25%** 几率令其发动率 -5%（受智力）；同时自身及随机1友军主动战法发动率 +4%（受智力），持续1回合",
+      "reliability": "partial",
+      "versionConflict": false
+    },
+    {
+      "name": "梦中弑臣",
+      "displayName": "梦中弑臣",
+      "level": 10,
+      "description": "前2回合（主将时）随机副将分担 **40%** 伤害；第3回合起自身有负面状态时获得 **50%** 概率反击（反击伤害率150%）。基础20%/25%",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "义心昭烈",
+      "displayName": "义心昭烈",
+      "level": 10,
+      "description": "**旧版**：自身治疗时，治疗目标受主动战法伤害 -14%（早期资料7%→14%或10%→20%），持续1回合；兵力首低于40%时全体分摊50%伤害1回合。**2024-11更新**：兵力首低于80%触发、分摊50%持续2回合；高智力携带者实际主动战法免伤约34%~40%",
+      "reliability": "partial",
+      "versionConflict": false
+    },
+    {
+      "name": "抚辑军民",
+      "displayName": "抚辑军民",
+      "level": 10,
+      "description": "前3回合我军群体（2人）造成伤害 -24%、受到伤害 -24%（受统率）；**第4回合**治疗率 **126%**（受智力）。基础12%/63%→24%/126%",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "铁骑驱驰",
+      "displayName": "铁骑驱驰",
+      "level": 10,
+      "description": "前2回合敌军全体**遇袭**；我军发动突击战法后降目标统率 **15%**（基础7.5%），持续3回合可叠加。仅骑兵",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "非攻制胜",
+      "displayName": "非攻制胜",
+      "level": 10,
+      "description": "第3回合起：我军武力最高武将造成兵刃伤害时，治疗兵力最低武将，治疗量 = 该次伤害的 **20%**（受武力；场内约450武力实际约40%）",
+      "reliability": "partial",
+      "versionConflict": false
+    },
+    {
+      "name": "士别三日",
+      "displayName": "士别三日",
+      "level": 10,
+      "description": "前3回合无法普攻但获得 **30%** 规避；第4回合智力 +68，对全体谋略伤害 **180%**（受智力）",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "兵无常势",
+      "displayName": "兵无常势",
+      "level": 10,
+      "description": "累积第3次普攻时，对目标谋略伤害 **240%**（受智力）并治疗自己 **180%**（受智力）",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "绝地反击",
+      "displayName": "绝地反击",
+      "level": 10,
+      "description": "每次受兵刃伤害武力 +6（最多10次，+60）；第5回合对全体兵刃伤害 **120%** + 每层 +14%。仅骑/盾/枪",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "文武双全",
+      "displayName": "文武双全",
+      "level": 10,
+      "description": "每次谋略伤害 +30 智力、每次兵刃伤害 +30 武力（各最多5层）",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "合军聚众",
+      "displayName": "合军聚众",
+      "level": 10,
+      "description": "每回合恢复兵力，回复率 **124%**（基础62%）",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "乘胜长驱",
+      "displayName": "乘胜长驱",
+      "level": 10,
+      "description": "每回合使自身造成伤害 +11%（基础5.5%），可叠加至战斗结束",
+      "reliability": "partial",
+      "versionConflict": false
+    },
+    {
+      "name": "士争先赴",
+      "displayName": "士争先赴",
+      "level": 10,
+      "description": "自带主动战法伤害 +20%；发动自带主动前，50% 几率对敌军2~3人造成 **120%** 兵刃伤害",
+      "reliability": "partial",
+      "versionConflict": false
+    },
+    {
+      "name": "魅惑",
+      "displayName": "魅惑",
+      "level": 10,
+      "description": "受普攻时 **40%** 几率使攻击者进入混乱/计穷/缴械/虚弱之一，持续1回合",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "忠勇义烈",
+      "displayName": "忠勇义烈",
+      "level": 10,
+      "description": "每回合 60% 几率获得以下之一（独立判定）：①主动战法发动率 +6%（受武力）；②武力/统率/智力各 +45；③28% 倒戈；持续1回合",
+      "reliability": "partial",
+      "versionConflict": false
+    },
+    {
+      "name": "整军经武",
+      "displayName": "整军经武",
+      "level": 10,
+      "description": "奇数回合受到伤害 -30%（受自身最高属性）；偶数回合统率/智力 +30（受最高属性）。2025-05-28 前奇数回合减伤25%",
+      "reliability": "partial",
+      "versionConflict": false
+    },
+    {
+      "name": "太平道法",
+      "displayName": "太平道法",
+      "level": 10,
+      "description": "**28%** 奇谋；自带主动战法发动率 +6%（瞬发）/ +12%（准备），受智力；黄巾主将时副将同样受益",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "裸衣血战",
+      "displayName": "裸衣血战",
+      "level": 10,
+      "description": "无法发动主动战法；前3回合 **90%** 连击（基础45%）；10% 倒戈；自身及敌军单体统率 -40。2020-06-03 起武力提升改版为倒戈",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "虎踞鹰扬",
+      "displayName": "虎踞鹰扬",
+      "level": 10,
+      "description": "**免疫缴械**；普攻后兵刃伤害 +7%（基础3.5%），最多叠加4次（最高+28%）",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "引弦力战",
+      "displayName": "引弦力战",
+      "level": 10,
+      "description": "普攻后 45% 概率获得群攻（伤害率 26%→52%）；已群攻则武力 +16（8→16），持续3回合最多6次（最高+96武力）。仅弓兵。🔴 少数来源为 31%→62%",
+      "reliability": "verified",
+      "versionConflict": true
+    },
+    {
+      "name": "血刃争锋",
+      "displayName": "血刃争锋",
+      "level": 10,
+      "description": "普攻伤害 +75%（37.5%→75%）；普攻后给目标叠「**酣斗**」，每回合最多1次；满3层消耗，额外普攻伤害 +11%×层数（3层33%→7层77%），持续到战斗结束",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "气凌三军",
+      "displayName": "气凌三军",
+      "level": 10,
+      "description": "受普攻时反击，伤害率 **52%**（26%→52%）；副将时提升至 **74%**（37%→74%）",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "刚勇无前",
+      "displayName": "刚勇无前",
+      "level": 10,
+      "description": "受伤后下回合行动时：会心 +20%（10%→20%），下次攻击伤害 +65%（32.5%→65%），持续1回合",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "众动万计",
+      "displayName": "众动万计",
+      "level": 10,
+      "description": "受普攻时 45% 概率对攻击来源兵刃伤害 **140%**（70%→140%），并使其下一次造成伤害 -40%（20%→40%）",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "千里走单骑",
+      "displayName": "千里走单骑",
+      "level": 10,
+      "description": "自带准备战法发动时，70% 几率获**洞察**（35%→70%，受武力）+ 武力 +50（25→50），持续2回合；洞察期间受普攻反击 **238%**（119%→238%）兵刃，每回合最多1次",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "威谋靡亢",
+      "displayName": "威谋靡亢",
+      "level": 10,
+      "description": "发动40%·准备1回合；群体（2人）虚弱2回合；已虚弱则改为**叛逃**，伤害率158%（受武力或智力最高项，无视防御）2回合",
+      "reliability": "partial",
+      "versionConflict": false
+    },
+    {
+      "name": "破军威胜",
+      "displayName": "破军威胜",
+      "level": 10,
+      "description": "发动40%·瞬发；单体统率 -70（受武力）2回合，并造成 **228%** 兵刃伤害",
+      "reliability": "partial",
+      "versionConflict": false
+    },
+    {
+      "name": "刮骨疗毒",
+      "displayName": "刮骨疗毒",
+      "level": 10,
+      "description": "发动40%；损失兵力最多单体**清除负面**并治疗，治疗率 **256%**（受智力）",
+      "reliability": "partial",
+      "versionConflict": false
+    },
+    {
+      "name": "夺魂挟魄",
+      "displayName": "夺魂挟魄",
+      "level": 10,
+      "description": "发动55%；偷取单体武力/智力/速度/统率各 **38**（受智力），2回合，可叠加2次",
+      "reliability": "partial",
+      "versionConflict": false
+    },
+    {
+      "name": "横扫千军",
+      "displayName": "横扫千军",
+      "level": 10,
+      "description": "发动40%·瞬发；全体 **100%** 兵刃伤害；目标处缴械或计穷时 **30%** 概率震慑1回合",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "破阵摧坚",
+      "displayName": "破阵摧坚",
+      "level": 10,
+      "description": "发动35%·准备1回合；群体（2人）**158%** 兵刃伤害 + 统率/智力 -80（受武力）2回合",
+      "reliability": "partial",
+      "versionConflict": false
+    },
+    {
+      "name": "所向披靡",
+      "displayName": "所向披靡",
+      "level": 10,
+      "description": "发动30%（部分35%）·准备1回合；全体兵刃伤害。🔴 旧版满级 **204.8%**（1级102.4%）vs 2020-11-04后 **246%**（1级123%）",
+      "reliability": "partial",
+      "versionConflict": true
+    },
+    {
+      "name": "诱敌深入",
+      "displayName": "诱敌深入",
+      "level": 10,
+      "description": "发动40%·准备1回合；群体（2人）沙暴伤害率 **126%**（受智力）+ 受兵刃伤害 +25%（固定）2回合",
+      "reliability": "partial",
+      "versionConflict": false
+    },
+    {
+      "name": "竭力佐谋",
+      "displayName": "竭力佐谋",
+      "level": 10,
+      "description": "发动55%；敌军智力最高单体智力 -20%；70% 概率使自身本回合非自带主动战法发动率 +100%",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "临机制胜",
+      "displayName": "临机制胜",
+      "level": 10,
+      "description": "发动55%·瞬发；群体（2人）中毒 **120%**（受智力）2回合；已中毒则随机获得灼烧/叛逃/沙暴之一（120%，受智力）2回合；1回合冷却",
+      "reliability": "partial",
+      "versionConflict": false
+    },
+    {
+      "name": "杯蛇鬼车",
+      "displayName": "杯蛇鬼车",
+      "level": 10,
+      "description": "发动50%·准备1回合；群体（2人）**153%** 谋略伤害 + 治疗率 **102%**（受智力）",
+      "reliability": "partial",
+      "versionConflict": false
+    },
+    {
+      "name": "焰逐风飞",
+      "displayName": "焰逐风飞",
+      "level": 10,
+      "description": "发动35%（部分40%）；单体 **226%** 谋略伤害（受智力）+ 震慑；40% 概率使目标受谋略伤害 +12%（受智力）1回合",
+      "reliability": "partial",
+      "versionConflict": false
+    },
+    {
+      "name": "伪书相间",
+      "displayName": "伪书相间",
+      "level": 10,
+      "description": "发动40%；单体 **192%** 谋略伤害（受智力）；目标混乱时令其对友军攻击（186%），否则施加混乱1回合",
+      "reliability": "partial",
+      "versionConflict": false
+    },
+    {
+      "name": "卧薪尝胆",
+      "displayName": "卧薪尝胆",
+      "level": 10,
+      "description": "发动45%·瞬发；群体（2人）**96%** 兵刃伤害 + 25% 几率震慑；自身每多一种增益（连击/洞察/先攻/必中/破阵）震慑几率 +10%",
+      "reliability": "partial",
+      "versionConflict": false
+    },
+    {
+      "name": "风助火势",
+      "displayName": "风助火势",
+      "level": 10,
+      "description": "发动45%；单体 **154%** 谋略伤害（受智力）；目标灼烧时额外 **198%**（两段合计352%）",
+      "reliability": "partial",
+      "versionConflict": false
+    },
+    {
+      "name": "熯天炽地",
+      "displayName": "熯天炽地",
+      "level": 10,
+      "description": "发动35%·准备1回合；全体火攻 **102%**（受智力）+ 灼烧伤害率 **72%**（受智力）2回合",
+      "reliability": "partial",
+      "versionConflict": false
+    },
+    {
+      "name": "万箭齐发",
+      "displayName": "万箭齐发",
+      "level": 10,
+      "description": "发动40%·准备1回合（弓兵专属）；全体 **140%** 兵刃伤害 + 50% 概率溃逃（伤害率120%，受武力）1回合",
+      "reliability": "partial",
+      "versionConflict": false
+    },
+    {
+      "name": "四面楚歌",
+      "displayName": "四面楚歌",
+      "level": 10,
+      "description": "发动50%·准备1回合；群体（2人）中毒，伤害率 **144%**（受智力）2回合",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "一力拒守",
+      "displayName": "一力拒守",
+      "level": 10,
+      "description": "发动55%；恢复自身兵力，治疗率 **268%**（134→268）+ 统率 +21（10.5→21，最多叠2次）3回合；副将时治疗受武力",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "沉沙决水",
+      "displayName": "沉沙决水",
+      "level": 10,
+      "description": "发动40%·准备1回合；群体（2人）水攻伤害率 **126%**（63→126，受智力）+ 受谋略伤害 +25% 2回合",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "形机军略",
+      "displayName": "形机军略",
+      "level": 10,
+      "description": "发动40%；单体兵刃+谋略各一次。🔴 旧版满级 **170%/158%**（合计328%）vs 7.21加强后 **210%/180%**（合计390%）",
+      "reliability": "partial",
+      "versionConflict": true
+    },
+    {
+      "name": "益其金鼓",
+      "displayName": "益其金鼓",
+      "level": 10,
+      "description": "嘲讽敌军全体；受普攻时治疗我军随机单体（治疗率受武力或智力最高项）。2024-03-20后发动率50%、治疗率75%（此前60%）",
+      "reliability": "partial",
+      "versionConflict": false
+    },
+    {
+      "name": "倾国倾城",
+      "displayName": "倾国倾城",
+      "level": 10,
+      "description": "发动25%→35%·准备1回合；敌军1-2人混乱2回合；35% 概率使其兵刃/谋略伤害提高",
+      "reliability": "partial",
+      "versionConflict": false
+    },
+    {
+      "name": "瞋目横矛",
+      "displayName": "瞋目横矛",
+      "level": 10,
+      "description": "发动40%；自身武力 +25→50，获得群攻（满级伤害率35%→70%，对2目标合计140%）2回合；弓兵不可用",
+      "reliability": "partial",
+      "versionConflict": false
+    },
+    {
+      "name": "运筹决算",
+      "displayName": "运筹决算",
+      "level": 10,
+      "description": "发动45%·准备1回合；全体谋略伤害 **88%→176%**（受智力）。🔴 旧资料为 91%→182%、发动35%",
+      "reliability": "partial",
+      "versionConflict": true
+    },
+    {
+      "name": "定谋贵决",
+      "displayName": "定谋贵决",
+      "level": 10,
+      "description": "发动20%→40%；敌军兵力最高单体嘲讽我军全体，并使其受到伤害 +20% 1回合",
+      "reliability": "partial",
+      "versionConflict": false
+    },
+    {
+      "name": "乘敌不虞",
+      "displayName": "乘敌不虞",
+      "level": 10,
+      "description": "发动35%·准备1回合；敌军主将**虚弱**2回合；我军主将休整（回复率 **108%**，54→108，受智力）2回合",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "黄天泰平",
+      "displayName": "黄天泰平",
+      "level": 10,
+      "description": "发动25%→35%·准备1回合；以自身**混乱**为代价，使敌军2人**计穷**2回合",
+      "reliability": "partial",
+      "versionConflict": false
+    },
+    {
+      "name": "兵锋",
+      "displayName": "兵锋",
+      "level": 10,
+      "description": "发动25%→35%；自身及友军单体进入**连击**（每回合普攻2次）1回合",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "智计",
+      "displayName": "智计",
+      "level": 10,
+      "description": "发动50%（2022-09加强后55%）；敌军2人武力/智力 -38（19→38，受智力）2回合，可叠2次",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "结盟",
+      "displayName": "结盟",
+      "level": 10,
+      "description": "发动30%→45%；选择一名异性友军2回合；目标获增益时，自身 45%→90% 概率获得相同效果（治疗效果按50%计）",
+      "reliability": "partial",
+      "versionConflict": false
+    },
+    {
+      "name": "因利制权",
+      "displayName": "因利制权",
+      "level": 10,
+      "description": "发动45%（2024-11-27后55%）；我军群体（2-3人）规避 **12.5%→25%**（调整后受速度/统率较高项）1回合；1回合冷却",
+      "reliability": "partial",
+      "versionConflict": false
+    },
+    {
+      "name": "疾风骤雨",
+      "displayName": "疾风骤雨",
+      "level": 10,
+      "description": "发动40%·瞬发；随机对敌军发动3-4次兵刃攻击，每次递增6%，满级第1~4次伤害率 **78% / 84% / 90% / 96%**；第3、4次附带禁疗1回合",
+      "reliability": "partial",
+      "versionConflict": false
+    },
+    {
+      "name": "草船借箭",
+      "displayName": "草船借箭",
+      "level": 10,
+      "description": "发动65%；移除我军2-3人负面 + 2人急救：每次受伤 70%（部分来源80%）概率回复伤害量 **28%** 兵力（受统率）2回合；1回合冷却",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "婴城自守",
+      "displayName": "婴城自守",
+      "level": 10,
+      "description": "发动50%；恢复2人兵力，治疗率 **92%**（46→92，受智力）+ 休整治疗率 **62%**（31→62）",
+      "reliability": "partial",
+      "versionConflict": false
+    },
+    {
+      "name": "火炽原燎",
+      "displayName": "火炽原燎",
+      "level": 10,
+      "description": "发动50%（部分35%）；2-3人灼烧伤害率 **56%**（28→56，受智力）2回合；已灼烧则兵刃攻击 **96%**（48→96；2022-05-11后 **118%**，即59→118）",
+      "reliability": "partial",
+      "versionConflict": false
+    },
+    {
+      "name": "据水断桥",
+      "displayName": "据水断桥",
+      "level": 10,
+      "description": "发动40%；2-3人溃逃伤害率 **78%**（39→78，受武力）+ 其造成伤害 -8%（4→8，受双方武力差）+ 自身倒戈 **16%**（8→16）2回合；1回合冷却",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "绝其汲道",
+      "displayName": "绝其汲道",
+      "level": 10,
+      "description": "发动50%·准备1回合；2-3人兵刃伤害 **162%**（81→162）+ 禁疗1回合",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "焚辎营垒",
+      "displayName": "焚辎营垒",
+      "level": 10,
+      "description": "发动35%·瞬发；2人谋略伤害 **146%**（73→146，受智力）+ 禁疗1回合",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "决水溃城",
+      "displayName": "决水溃城",
+      "level": 10,
+      "description": "发动45%·准备1回合；2-3人**破坏（禁装备）** + 水攻伤害率 **112%**（56→112，受智力）2回合；首回合发动则无需准备",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "击其惰归",
+      "displayName": "击其惰归",
+      "level": 10,
+      "description": "发动40%；下回合行动前若受超过最大兵力20%伤害：治疗率 **296%**（148→296，受统率）+ 谋略减伤 **25%**（12.5→25，受统率）1回合；否则对全体兵刃伤害 **154%**（77→154）",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "掣刀斫敌",
+      "displayName": "掣刀斫敌",
+      "level": 10,
+      "description": "发动35%·瞬发；单体受兵刃伤害 +7.5%，然后兵刃伤害 **104%** + 震慑1回合。🔴 7724载满级为 15% / 208%",
+      "reliability": "verified",
+      "versionConflict": true
+    },
+    {
+      "name": "独行赴斗",
+      "displayName": "独行赴斗",
+      "level": 10,
+      "description": "发动50%；**嘲讽敌军全体**，自身统率 +40%（20%→40%）2回合",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "临锋决敌",
+      "displayName": "临锋决敌",
+      "level": 10,
+      "description": "发动30%→55%；自身**连击 + 免疫缴械**1回合。🔴 个别来源误描述为「2-3人规避+冷却」（疑与因利制权混淆）",
+      "reliability": "verified",
+      "versionConflict": true
+    },
+    {
+      "name": "众望所归",
+      "displayName": "众望所归",
+      "level": 10,
+      "description": "发动40%·瞬发；2人治疗率 **72%**（36→72，受统率）+ 武力最高单体兵刃 **86%**（43→86）+ 智力最高单体谋略 **86%**；同一人时均降为 **72%**",
+      "reliability": "partial",
+      "versionConflict": false
+    },
+    {
+      "name": "一骑当千",
+      "displayName": "一骑当千",
+      "level": 10,
+      "description": "发动30%；普攻后对全体兵刃伤害 **72%**；主将时提升至 **108%**",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "暴戾无仁",
+      "displayName": "暴戾无仁",
+      "level": 10,
+      "description": "发动25%→35%；普攻后对目标兵刃伤害 **196%** + 混乱1回合",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "百骑劫营",
+      "displayName": "百骑劫营",
+      "level": 10,
+      "description": "发动40%；随机单体兵刃 **152%**（17173版**162%**）；主将时50%几率对敌军主将额外 **118%**（17173版**120%**）。仅骑兵",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "折冲御侮",
+      "displayName": "折冲御侮",
+      "level": 10,
+      "description": "发动25%→45%；随机单体统率/智力 -100，2回合；自身非主将时，我军主将获 **2次抵御** 2回合",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "速乘其利",
+      "displayName": "速乘其利",
+      "level": 10,
+      "description": "发动35%；单体兵刃 **185%**（92.5→185）+ **计穷**1回合",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "先成其虑",
+      "displayName": "先成其虑",
+      "level": 10,
+      "description": "发动45%（2023-05更新后50%，搜索摘要）；单体谋略 **145%**（72.5→145，受智力）+ 自身主动战法发动率 +15%（7.5→15）1回合",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "克敌制胜",
+      "displayName": "克敌制胜",
+      "level": 10,
+      "description": "发动40%；单体谋略 **180%**（受智力）；目标溃逃或中毒时 70% 概率**虚弱**1回合",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "勇者得前",
+      "displayName": "勇者得前",
+      "level": 10,
+      "description": "发动45%；自身获 **1次抵御**，并使下一次主动战法伤害 +80%",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "当锋摧决",
+      "displayName": "当锋摧决",
+      "level": 10,
+      "description": "发动35%；单体谋略 **182%**（受智力）+ **伪报**1回合（禁用目标增益指挥/被动战法，无视洞察）",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "鬼神霆威",
+      "displayName": "鬼神霆威",
+      "level": 10,
+      "description": "发动35%；单体兵刃 **204%**（102→204）；主将且目标兵力<50%时额外增伤，最高 **50%**（1级25%）",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "虎豹骑",
+      "displayName": "虎豹骑（骑）",
+      "level": 10,
+      "description": "**现行版**：我军全体武力 +40，前3回合突击战法发动率 +10%；曹纯统领时额外受武力影响。**S2原版**：普攻后90%概率使目标兵刃伤害 -14%（1回合，可叠3次）",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "西凉铁骑",
+      "displayName": "西凉铁骑（骑）",
+      "level": 10,
+      "description": "前3回合我军全体会心几率 **12.5%→25%**；马腾统领时受速度影响",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "象兵",
+      "displayName": "象兵（骑）",
+      "level": 10,
+      "description": "**现行版**：攻城值 +25%但行军速度 -50%；受到伤害的 **50%** 延后至3回合内结算、结算伤害 -20%；自身灼烧时获50%群攻及混乱；蛮族统领每多1蛮族武将结算伤害再 -10%。**早期版**：延后2回合",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "白马义从",
+      "displayName": "白马义从（弓）",
+      "level": 10,
+      "description": "行军速度 +25%→50%；我军全体前2回合**先攻** + 主动战法发动率 +5%→10%；公孙瓒统领时受速度影响",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "无当飞军",
+      "displayName": "无当飞军（弓）",
+      "level": 10,
+      "description": "我军全体统率/速度 +11→22；首回合对2人施中毒（伤害率 40%→80%，受智力）3回合；王平统领时对全体施毒但伤害率降为 33%→66%",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "白毦兵",
+      "displayName": "白毦兵（枪）",
+      "level": 10,
+      "description": "我军全体普攻后 20%→40% 概率对目标谋略攻击（伤害率 55%→110%，受智力）；陈到统领时 65%→130%",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "大戟士",
+      "displayName": "大戟士（枪）",
+      "level": 10,
+      "description": "我军全体武力 +7→14；普攻时 35% 几率对其他单体兵刃伤害（61%→122%）；张郃统领时发动率 40%",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "陷阵营",
+      "displayName": "陷阵营（盾）",
+      "level": 10,
+      "description": "我军全体武力/统率 +11→22；前3回合急救：受伤时 30% 概率治疗（治疗率 30%→60%，受智力）；高顺统领时额外受统率影响",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "藤甲兵",
+      "displayName": "藤甲兵（盾）",
+      "level": 10,
+      "description": "我军全体受兵刃伤害 -12%→24%（受统率）；但灼烧时每回合额外损失兵力（伤害率 **300%**）；兀突骨统领时灼烧损失降为 **250%**",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "青州兵",
+      "displayName": "青州兵（枪）",
+      "level": 10,
+      "description": "前2回合：我军2人受普攻时反击，伤害率 36%→72%；第3回合起依次回兵优先兵力最低者，总治疗率 **90%→180%**（受武力，受伤越多恢复越多）",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "锦帆军",
+      "displayName": "锦帆军（弓）",
+      "level": 10,
+      "description": "普攻时 40% 概率使目标**溃逃**（伤害率 32%→64%，受武力）2回合；已溃逃则兵刃攻击 55%→110% 并恢复伤害量 **30%** 兵力；甘宁统领时友军会心 +6%",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "虎卫军",
+      "displayName": "虎卫军（盾）",
+      "level": 10,
+      "description": "我军主将将受普攻时，副将武力 +6→12（最多5次），并对攻击者兵刃伤害 36%→72%（受各自损失兵力影响，最多 +20%）",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "锋矢阵",
+      "displayName": "锋矢阵",
+      "level": 10,
+      "description": "主将造成伤害 +30%、受到伤害 +20%；副将造成伤害 -15%、受到伤害 -25%（基础12.5%）。仅骑/盾/枪，持续全场",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "箕形阵",
+      "displayName": "箕形阵",
+      "level": 10,
+      "description": "前3回合敌军主将造成伤害 -40%（受武力，可更高）；我军副将受到伤害 -20%。🔴 个别来源称「前2回合」",
+      "reliability": "verified",
+      "versionConflict": true
+    },
+    {
+      "name": "八门金锁阵",
+      "displayName": "八门金锁阵",
+      "level": 10,
+      "description": "前3回合敌军群体（2人）造成伤害 -30%（受智力，高智力可达60%+）；我军主将获**先攻**",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "三势阵",
+      "displayName": "三势阵",
+      "level": 10,
+      "description": "前5回合主将自带主动/突击战法发动率 +16%（8%→16%）；每回合损失兵力较多的副将受到伤害 -30%、另一名副将造成伤害 +25%",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "形一阵",
+      "displayName": "形一阵",
+      "level": 10,
+      "description": "携带者最高属性 +60；第1回合队友兵刃/谋略减伤30%（逐回合衰减，第4回合结束）；第5回合起增伤逐回合叠加最高 4×16% = **64%**；携带者自身受到伤害增加最高 4×4% = 16%",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "武锋阵",
+      "displayName": "武锋阵",
+      "level": 10,
+      "description": "前5回合主将 80% 几率优先被敌方战法选中、且对其伤害 -30%（受主将统率）；奇数回合治疗率 **184%**；偶数回合兵种适性较高的副将造成伤害 +15%（可叠加）。官方6月9日更新：178%→184%、14%→15%",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "潜龙阵",
+      "displayName": "潜龙阵",
+      "level": 10,
+      "description": "触发：我军三将阵营均不同。**旧版**：主将全属性 +15% 但造成伤害 -30%；副将造成伤害 +15%、受到伤害 -10%；副将可触发主将效果（主将若有主将效果则失去且属性降为+5%）。**2023-02-22调整**：主将受伤改为 -15%、副将受到伤害改为 -15%",
+      "reliability": "partial",
+      "versionConflict": false
+    },
+    {
+      "name": "落凤",
+      "displayName": "落凤",
+      "level": 10,
+      "description": "发动35%·瞬发；单体兵刃伤害 **250%**（125%→250%）+ 计穷1回合",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "轻勇飞燕",
+      "displayName": "轻勇飞燕",
+      "level": 10,
+      "description": "发动40%；单体兵刃2-4次、每次 **84%**（42%→84%），总期望约168%~336%",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "暴敛四方",
+      "displayName": "暴敛四方",
+      "level": 10,
+      "description": "发动45%·瞬发；单体兵刃2次、每次 **102%**（51%→102%）；目标震慑时追加禁疗2回合",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "御敌屏障",
+      "displayName": "御敌屏障",
+      "level": 10,
+      "description": "我军群体（2人）受到兵刃/谋略伤害 -25%",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "白眉",
+      "displayName": "白眉",
+      "level": 10,
+      "description": "自身主动战法发动几率 +12%",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "百炼成钢",
+      "displayName": "百炼成钢",
+      "level": 10,
+      "description": "武力/智力/统率/政治四维 +36",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "长者之风",
+      "displayName": "长者之风",
+      "level": 10,
+      "description": "武力 +28、智力 +28",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "弯弓饮羽",
+      "displayName": "弯弓饮羽",
+      "level": 10,
+      "description": "发动40%·突击；普攻后目标统率 -150（75→150）+ 计穷1回合",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "手起刀落",
+      "displayName": "手起刀落",
+      "level": 10,
+      "description": "普攻后单体兵刃伤害 **214%**",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "暗藏玄机",
+      "displayName": "暗藏玄机",
+      "level": 10,
+      "description": "发动40%·突击；普攻后单体兵刃 **144%**；目标是主将则额外谋略 **92%**（受智力）",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "坐守孤城",
+      "displayName": "坐守孤城",
+      "level": 10,
+      "description": "发动45%·瞬发；我军2人治疗率 **116%**（58%→116，受智力）",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "妖术",
+      "displayName": "妖术",
+      "level": 10,
+      "description": "发动40%·准备1回合；全体沙暴伤害率 **72%**（36%→72，受智力）2回合 + 自身1次抵御",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "落雷",
+      "displayName": "落雷",
+      "level": 10,
+      "description": "随机单体谋略伤害 **170%**（受智力）+ 受谋略伤害 +18% 2回合；5%几率误伤友军",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "料事如神",
+      "displayName": "料事如神",
+      "level": 10,
+      "description": "发动35%；群体（2人）谋略伤害 **106%**（53%→106，受智力）+ 其造成伤害 -16%（8%→16）2回合",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "后发制人",
+      "displayName": "后发制人",
+      "level": 10,
+      "description": "受普攻时反击，伤害率 **52%**（26%→52）",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "唇枪舌战",
+      "displayName": "唇枪舌战",
+      "level": 10,
+      "description": "发动50%·瞬发；全体谋略伤害 **60%**（30%→60，受智力）+ 嘲讽1回合",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "屠几上肉",
+      "displayName": "屠几上肉",
+      "level": 10,
+      "description": "发动35%·瞬发；单体兵刃 **150%** + 谋略 **150%**（受智力）",
+      "reliability": "verified",
+      "versionConflict": false
+    },
+    {
+      "name": "强攻",
+      "displayName": "强攻",
+      "level": 10,
+      "description": "发动25%→45%；自身**连击**（每回合普攻2次）1回合",
+      "reliability": "verified",
+      "versionConflict": false
+    }
+  ]
+}

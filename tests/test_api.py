@@ -44,6 +44,8 @@ def load_lib():
     lib.load_data.restype = ctypes.c_void_p
     lib.reload_data.restype = ctypes.c_void_p
     lib.evaluate_team.restype = ctypes.c_void_p
+    lib.evaluate_team_main.restype = ctypes.c_void_p
+    lib.evaluate_team_references.restype = ctypes.c_void_p
     lib.evaluate_team_stars.restype = ctypes.c_void_p
     lib.evaluate_team_build.restype = ctypes.c_void_p
     lib.recommend_teams.restype = ctypes.c_void_p
@@ -52,6 +54,7 @@ def load_lib():
     lib.get_tactic_max_level.restype = ctypes.c_void_p
     lib.create_local_account.restype = ctypes.c_void_p
     lib.set_local_account_hero.restype = ctypes.c_void_p
+    lib.set_local_account_tactic.restype = ctypes.c_void_p
     lib.get_local_account.restype = ctypes.c_void_p
     lib.save_local_accounts.restype = ctypes.c_void_p
     lib.load_local_accounts.restype = ctypes.c_void_p
@@ -61,6 +64,9 @@ def load_lib():
     lib.load_data.argtypes = [ctypes.c_char_p]
     lib.reload_data.argtypes = [ctypes.c_char_p]
     lib.evaluate_team.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_int]
+    lib.evaluate_team_main.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int]
+    lib.evaluate_team_references.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_int,
+                                             ctypes.c_int, ctypes.c_int, ctypes.c_int]
     lib.evaluate_team_stars.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_int,
                                         ctypes.c_int, ctypes.c_int, ctypes.c_int]
     lib.evaluate_team_build.argtypes = [ctypes.c_char_p]
@@ -70,6 +76,7 @@ def load_lib():
     lib.get_tactic_max_level.argtypes = [ctypes.c_char_p]
     lib.create_local_account.argtypes = [ctypes.c_char_p]
     lib.set_local_account_hero.argtypes = [ctypes.c_char_p, ctypes.c_int, ctypes.c_int, ctypes.c_int]
+    lib.set_local_account_tactic.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_int]
     lib.get_local_account.argtypes = [ctypes.c_char_p]
     lib.save_local_accounts.argtypes = [ctypes.c_char_p]
     lib.load_local_accounts.argtypes = [ctypes.c_char_p]
@@ -103,6 +110,7 @@ def main():
     check("load_data ok", r.get("ok") is True, str(r))
     check("load_data 138 武将", r.get("heroes") == 138, str(r))
     check("load_data 212 战法", r.get("tactics") == 212, str(r))
+    check("已挂载 Lv10 战法资料", r.get("tacticsWithMaxLevelData", 0) >= 70, str(r))
 
     print("== get_heroes / get_tactics ==")
     heroes = json.loads(call(lib, lib.get_heroes))
@@ -122,15 +130,35 @@ def main():
     check("names", rep.get("names") == ["刘备", "关羽", "张飞"], str(rep.get("names")))
     check("有 ruleScore", "ruleScore" in rep and 0 <= rep["ruleScore"]["total"] <= 100)
     check("有 battle", "battle" in rep and rep["battle"]["sims"] > 0)
+    check("有模拟不确定性指标", 0 <= rep["battle"].get("drawRate", -1) <= 1 and
+          0 <= rep["battle"].get("winRateStdError", -1) <= 0.5, str(rep["battle"]))
+    check("胜率置信区间合法且含胜率", 0 <= rep["battle"].get("winRateCi95Low", -1) <= rep["battle"].get("winRate", -1) <=
+          rep["battle"].get("winRateCi95High", -1) <= 1, str(rep["battle"]))
+    check("返回模拟种子", isinstance(rep["battle"].get("seed"), (int, float)) and rep["battle"].get("seed") >= 0,
+          str(rep["battle"]))
     check("每将 2 战法", all(len(t) == 2 for t in rep.get("tactics", [])), str(rep.get("tactics")))
     check("有建议", len(rep.get("advice", [])) >= 1)
     check("总分 0-100", 0 <= rep.get("total", -1) <= 100, str(rep.get("total")))
     check("默认满级战法", rep.get("tacticLevel") == 10 and "evidence" in rep, str(rep))
+    main_rep = json.loads(call(lib, lib.evaluate_team_main, liu, guan, zhang, -1, 1))
+    check("可指定主将", main_rep.get("ok") is True and main_rep.get("mainIdx") == 1 and
+          main_rep.get("mainName") == "关羽", str(main_rep)[:180])
+    refs = json.loads(call(lib, lib.evaluate_team_references, liu, guan, zhang, -1, 0, 30))
+    check("多参考队评估 ok", refs.get("ok") is True and refs.get("referenceCount", 0) >= 1,
+          str(refs)[:240])
+    check("多参考队含均值和最低值", refs.get("minimumWinRate", -1) <= refs.get("averageWinRate", -1) <= 1,
+          str(refs)[:240])
+    refs_again = json.loads(call(lib, lib.evaluate_team_references, liu, guan, zhang, -1, 0, 30))
+    check("多参考队种子可复现", refs.get("references") == refs_again.get("references"),
+          str((refs, refs_again))[:240])
 
     print("== 满级战法 / 红度评估 ==")
     max_tactic = json.loads(call(lib, lib.get_tactic_max_level, "横扫千军".encode()))
     check("满级战法查询", max_tactic.get("ok") is True and max_tactic.get("level") == 10 and
-          max_tactic.get("numericMultiplier") == 2, str(max_tactic))
+          max_tactic.get("maxLevelDataAvailable") is True and
+          max_tactic.get("combatValuesExact") is not False and
+          max_tactic.get("numericMultiplier") == 1 and
+          "100%" in max_tactic.get("maxLevel", {}).get("description", ""), str(max_tactic))
     red = json.loads(call(lib, lib.evaluate_team_stars, liu, guan, zhang, 5, 4, 3))
     check("红度评估 ok", red.get("ok") is True and red.get("redStars") == [5, 4, 3], str(red))
     check("红度进入战斗", red.get("battle", {}).get("sims") == 200 and
@@ -171,17 +199,32 @@ def main():
         check(f"账号加入武将 {hid}", owned.get("ok") is True, str(owned))
     owned = json.loads(call(lib, lib.get_local_account, account_id))
     check("账号保留红度", {x["stars"] for x in owned.get("heroes", [])} == {1, 3, 5}, str(owned))
+    for tactic in ("盛气凌敌", "横扫千军", "刮骨疗毒", "暂避其锋", "一骑当千"):
+        updated = json.loads(call(lib, lib.set_local_account_tactic, account_id, tactic.encode(), 1))
+        check(f"账号加入战法 {tactic}", updated.get("ok") is True, str(updated))
+    owned = json.loads(call(lib, lib.get_local_account, account_id))
+    check("账号保留战法池", {x["name"] for x in owned.get("tactics", [])} ==
+          {"盛气凌敌", "横扫千军", "刮骨疗毒", "暂避其锋", "一骑当千"}, str(owned))
+    invalid_tactic = json.loads(call(lib, lib.set_local_account_tactic, account_id, "刘备自带战法".encode(), 1))
+    check("拒绝无效账号战法", invalid_tactic.get("ok") is False, str(invalid_tactic))
     own_recs = json.loads(call(lib, lib.recommend_account_teams, account_id, 3))
-    check("账号限定推荐", own_recs.get("ok") is True and len(own_recs.get("recommendations", [])) == 1,
+    check("账号限定推荐", own_recs.get("ok") is True and own_recs.get("tacticPoolSize") == 5 and
+          len(own_recs.get("recommendations", [])) == 1,
           str(own_recs)[:240])
     if own_recs.get("recommendations"):
         check("推荐仅含已拥有武将", set(own_recs["recommendations"][0]["heroes"]) == {liu, guan, zhang},
               str(own_recs))
+        allowed_tactics = {"盛气凌敌", "横扫千军", "刮骨疗毒", "暂避其锋", "一骑当千"}
+        equipped = {name for slots in own_recs["recommendations"][0].get("tactics", []) for name in slots}
+        check("推荐仅用账号战法池", equipped <= allowed_tactics, str(own_recs))
     account_file = os.path.join(ROOT, "build", "test_local_accounts.json")
     saved = json.loads(call(lib, lib.save_local_accounts, account_file.encode()))
     check("本地账号保存", saved.get("ok") is True and os.path.exists(account_file), str(saved))
     loaded_accounts = json.loads(call(lib, lib.load_local_accounts, account_file.encode()))
     check("本地账号加载", loaded_accounts.get("ok") is True and loaded_accounts.get("accounts"), str(loaded_accounts))
+    reloaded = json.loads(call(lib, lib.get_local_account, account_id))
+    check("账号加载后保留战法池", {x["name"] for x in reloaded.get("tactics", [])} ==
+          {"盛气凌敌", "横扫千军", "刮骨疗毒", "暂避其锋", "一骑当千"}, str(reloaded))
 
     print("== evaluate_team（非法下标）==")
     bad = json.loads(call(lib, lib.evaluate_team, 999, 0, 1))
@@ -194,6 +237,11 @@ def main():
     check("按总分降序", all(totals[i] >= totals[i + 1] for i in range(len(totals) - 1)), str(totals))
     r0 = recs[0]
     check("每条含 heroes/tactics", "heroes" in r0 and "tactics" in r0, str(r0)[:120])
+    check("推荐已返回主将", r0.get("mainHeroId") == r0.get("heroes", [None])[0], str(r0)[:180])
+    all_tactics = [name for slots in r0.get("tactics", []) for name in slots]
+    type_by_name = {t["name"]: t.get("type") for t in tactics}
+    check("推荐队伍阵法/兵种战法唯一", sum(1 for name in all_tactics if type_by_name.get(name) == "阵法") <= 1 and
+          sum(1 for name in all_tactics if type_by_name.get(name) == "兵种") <= 1, str(r0.get("tactics")))
 
     print("== 回退数据（指向不存在的文件）==")
     r = json.loads(call(lib, lib.load_data, b"/nonexistent/data.json"))

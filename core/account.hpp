@@ -2,6 +2,7 @@
 #pragma once
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 #include "json.hpp"
 
@@ -12,10 +13,13 @@ struct LocalAccount {
     std::string name;
     // hero index -> red-star level (0..5). Presence means owned.
     std::unordered_map<int, int> heroes;
+    // 传承战法名称。名称比战法数组下标更适合跨数据版本保存。
+    std::unordered_set<std::string> tactics;
 };
 
 std::string createAccount(const std::string& name);
 bool setAccountHero(const std::string& accountId, int heroId, int stars, bool owned);
+bool setAccountTactic(const std::string& accountId, const std::string& tacticName, bool owned);
 bool getAccount(const std::string& accountId, LocalAccount& out);
 std::vector<LocalAccount> listAccounts();
 void clearAccounts();

@@ -5,6 +5,7 @@
 #include "tactic_assign.hpp"
 #include <algorithm>
 #include <atomic>
+#include <cmath>
 #include <thread>
 
 namespace sgz {
@@ -24,8 +25,8 @@ struct Candidate {
     int a = 0, b = 0, c = 0;
 };
 
-constexpr double W_BATTLE = 0.70; // 战斗胜率权重
-constexpr double W_RULE = 0.30;   // 规则分权重
+constexpr double W_BATTLE = 0.80; // 战损比权重
+constexpr double W_RULE = 0.20;   // 规则分权重
 
 // 与 scoring::ruleScore 相同的公式，但用预计算特征，快筛用
 double fastRule(const HeroFeat& f1, const HeroFeat& f2, const HeroFeat& f3) {
@@ -58,7 +59,8 @@ double fastRule(const HeroFeat& f1, const HeroFeat& f2, const HeroFeat& f3) {
 
 std::vector<RecommendEntry> recommendTeams(int topN, int topM, int sims,
                                            const std::vector<int>* eligibleHeroIds,
-                                           const std::unordered_map<int, int>* redStars) {
+                                           const std::unordered_map<int, int>* redStars,
+                                           const std::unordered_set<std::string>* allowedTactics) {
     auto& st = store();
     std::vector<RecommendEntry> out;
     if (st.heroes.size() < 3) return out;
@@ -107,8 +109,8 @@ std::vector<RecommendEntry> recommendTeams(int topN, int topM, int sims,
     int M = (int)cands.size();
 
     // ---- 阶段二：配装 + 蒙特卡洛（并行） ----
-    TeamConfig ref;
-    bool haveRef = buildReferenceTeam(ref);
+    auto refs = buildReferenceTeams();
+    bool haveRef = !refs.empty();
 
     std::vector<RecommendEntry> entries(M);
     std::atomic<int> next{0};
@@ -132,31 +134,69 @@ std::vector<RecommendEntry> recommendTeams(int topN, int topM, int sims,
                     tc.hero[i] = &st.heroes[rawIds[i]];
                     tc.redStars[i] = stars[i];
                 }
-                tc.mainIdx = 0; // 主将取第一将（简化）
                 tc.troop = bestTroopType(tc.hero);
-                assignTactics(tc);
+                assignTactics(tc, allowedTactics);
 
-                double wr = 0.5; // 无参考队伍时退化为规则排序
-                if (haveRef) {
-                    unsigned seed =
-                        (unsigned)(cd.a * 73856093u ^ cd.b * 19349663u ^ cd.c * 83492791u);
-                    BattleStats s = simulateBattle(tc, ref, sims, seed);
-                    wr = s.winRate;
+                int bestMain = 0;
+                BattleStats bestBattle;
+                unsigned bestSeed = 0;
+                double bestTotal = -1.0;
+                // 主将的基础属性和部分自带战法会改变结果，逐一枚举三种位置。
+                for (int main = 0; main < 3; ++main) {
+                    tc.mainIdx = main;
+                    BattleStats battle;
+                    unsigned seed = 0;
+                    double wr = 0.5; // 无参考队伍时退化为规则排序
+                    if (haveRef) {
+                        seed = static_cast<unsigned>(cd.a * 73856093u ^ cd.b * 19349663u ^
+                                                     cd.c * 83492791u ^ main * 2654435761u);
+                        battle.sims = sims * (int)refs.size();
+                        for (size_t ri = 0; ri < refs.size(); ++ri) {
+                            BattleStats one = simulateBattle(tc, refs[ri].team, sims,
+                                seed + (unsigned)ri * 104729u);
+                            battle.winRate += one.winRate; battle.drawRate += one.drawRate;
+                            battle.avgDmgDealt += one.avgDmgDealt; battle.avgDmgTaken += one.avgDmgTaken;
+                            battle.avgCasualtyRatio += one.avgCasualtyRatio;
+                        }
+                        double nr = (double)refs.size();
+                        battle.winRate /= nr; battle.drawRate /= nr;
+                        battle.avgDmgDealt /= nr; battle.avgDmgTaken /= nr; battle.avgCasualtyRatio /= nr;
+                        battle.casualtyScore = 100.0 * battle.avgCasualtyRatio / (1.0 + battle.avgCasualtyRatio);
+                        battle.winRateStdError = std::sqrt(battle.winRate * (1.0 - battle.winRate) / std::max(1, battle.sims));
+                        wr = battle.casualtyScore / 100.0;
+                    }
+                    double total = W_BATTLE * wr * 100.0 + W_RULE * ruleScore(tc).total;
+                    if (total > bestTotal) {
+                        bestTotal = total;
+                        bestMain = main;
+                        bestBattle = battle;
+                        bestSeed = seed;
+                    }
                 }
+                tc.mainIdx = bestMain;
+                RuleScore selectedRule = ruleScore(tc);
 
                 RecommendEntry e;
-                e.heroIdx[0] = cd.a;
-                e.heroIdx[1] = cd.b;
-                e.heroIdx[2] = cd.c;
+                // 结果中主将固定放在第一个位置，前端载入后可直接复现推荐构建。
+                int output = 0;
+                const int order[3] = {bestMain, (bestMain + 1) % 3, (bestMain + 2) % 3};
+                for (int pos : order) {
+                    e.heroIdx[output] = rawIds[pos];
+                    e.redStars[output] = stars[pos];
+                    for (const Tactic* t : tc.slots[pos]) e.tactics[output].push_back(t->name);
+                    ++output;
+                }
                 e.cost = st.heroes[cd.a].cost + st.heroes[cd.b].cost + st.heroes[cd.c].cost;
                 e.troop = tc.troop;
-                e.rule = cd.rule;
-                e.winRate = wr;
-                e.total = W_BATTLE * wr * 100.0 + W_RULE * cd.rule;
-                for (int i = 0; i < 3; ++i) e.redStars[i] = stars[i];
+                e.rule = selectedRule.total;
+                e.winRate = haveRef ? bestBattle.winRate : 0.5;
+                e.drawRate = haveRef ? bestBattle.drawRate : 0.0;
+                e.casualtyRatio = haveRef ? bestBattle.avgCasualtyRatio : 0.0;
+                e.casualtyScore = haveRef ? bestBattle.casualtyScore : 50.0;
+                e.winRateStdError = haveRef ? bestBattle.winRateStdError : 0.0;
+                e.total = bestTotal;
                 e.tacticLevel = tc.tacticLevel;
-                for (int i = 0; i < 3; i++)
-                    for (const Tactic* t : tc.slots[i]) e.tactics[i].push_back(t->name);
+                e.seed = bestSeed;
                 entries[k] = e;
             }
         });
@@ -176,6 +216,7 @@ jq::Json recommendToJson(const std::vector<RecommendEntry>& entries) {
         jq::Json h = jq::Json::array();
         for (int i = 0; i < 3; i++) h.push_back((double)e.heroIdx[i]);
         j.set("heroes", h);
+        j.set("mainHeroId", (double)e.heroIdx[0]);
         j.set("cost", (double)e.cost);
         j.set("troop", std::string(troopNameCN(e.troop)));
         jq::Json ts = jq::Json::array();
@@ -187,12 +228,20 @@ jq::Json recommendToJson(const std::vector<RecommendEntry>& entries) {
         j.set("tactics", ts);
         j.set("rule", e.rule);
         j.set("winRate", e.winRate);
+        j.set("drawRate", e.drawRate);
+        j.set("casualtyRatio", e.casualtyRatio);
+        j.set("casualtyScore", e.casualtyScore);
+        j.set("winRateStdError", e.winRateStdError);
+        const double margin = 1.96 * e.winRateStdError;
+        j.set("winRateCi95Low", std::max(0.0, e.winRate - margin));
+        j.set("winRateCi95High", std::min(1.0, e.winRate + margin));
         j.set("total", e.total);
         jq::Json rs = jq::Json::array();
         for (int i = 0; i < 3; ++i) rs.push_back((double)e.redStars[i]);
         j.set("redStars", rs);
         j.set("tacticLevel", (double)e.tacticLevel);
-        j.set("evidence", "8回合蒙特卡洛实战胜率 + 规则分");
+        j.set("seed", (double)e.seed);
+        j.set("evidence", "已枚举主将位置；多套固定参考队战损比蒙特卡洛结果 + 规则分");
         arr.push_back(j);
     }
     return arr;

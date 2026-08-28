@@ -15,6 +15,7 @@
 #include <QGroupBox>
 #include <QHeaderView>
 #include <QHBoxLayout>
+#include <QInputDialog>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -26,6 +27,8 @@
 #include <QMainWindow>
 #include <QMessageBox>
 #include <QPushButton>
+#include <QSpinBox>
+#include <QStandardPaths>
 #include <QSplitter>
 #include <QStatusBar>
 #include <QStringList>
@@ -52,6 +55,13 @@ struct Hero {
     QString role;
     int cost = 0;
     QString aptitude;
+};
+
+struct Tactic {
+    QString name;
+    QString type;
+    QString category;
+    QString quality;
 };
 
 struct TaskResult {
@@ -144,7 +154,9 @@ private:
     QTableWidget* heroesTable_ = nullptr;
     QToolButton* slotButtons_[3]{};
     QComboBox* troop_ = nullptr;
+    QComboBox* mainHero_ = nullptr;
     QPushButton* evaluateButton_ = nullptr;
+    QPushButton* referencesButton_ = nullptr;
     QPushButton* recommendButton_ = nullptr;
     QPushButton* reloadButton_ = nullptr;
     QPushButton* clearButton_ = nullptr;
@@ -152,9 +164,31 @@ private:
     QTextEdit* report_ = nullptr;
     QTableWidget* recommendations_ = nullptr;
 
+    QComboBox* accountCombo_ = nullptr;
+    QLineEdit* accountPath_ = nullptr;
+    QPushButton* createAccountButton_ = nullptr;
+    QPushButton* accountRecommendButton_ = nullptr;
+    QPushButton* saveAccountsButton_ = nullptr;
+    QPushButton* loadAccountsButton_ = nullptr;
+    QLineEdit* accountHeroSearch_ = nullptr;
+    QTableWidget* accountHeroes_ = nullptr;
+    QTableWidget* ownedHeroes_ = nullptr;
+    QSpinBox* heroStars_ = nullptr;
+    QPushButton* addHeroButton_ = nullptr;
+    QPushButton* removeHeroButton_ = nullptr;
+    QLineEdit* tacticSearch_ = nullptr;
+    QTableWidget* availableTactics_ = nullptr;
+    QTableWidget* ownedTactics_ = nullptr;
+    QPushButton* addTacticButton_ = nullptr;
+    QPushButton* removeTacticButton_ = nullptr;
+
     QVector<Hero> heroes_;
+    QVector<Tactic> tactics_;
     Hero slots_[3];
     QVector<QJsonObject> recommendationCache_;
+    QJsonObject currentAccount_;
+    bool updatingAccounts_ = false;
+    bool accountStoreAutoLoaded_ = false;
     int activeSlot_ = 0;
     bool busy_ = false;
 
@@ -272,10 +306,18 @@ private:
         troop_->addItem(QStringLiteral("弓兵"), 2);
         troop_->addItem(QStringLiteral("枪兵"), 3);
         controls->addWidget(troop_);
+        controls->addWidget(new QLabel(QStringLiteral("主将"), panel));
+        mainHero_ = new QComboBox(panel);
+        mainHero_->addItem(QStringLiteral("槽位 1"), 0);
+        mainHero_->addItem(QStringLiteral("槽位 2"), 1);
+        mainHero_->addItem(QStringLiteral("槽位 3"), 2);
+        controls->addWidget(mainHero_);
         evaluateButton_ = new QPushButton(QStringLiteral("评估"), panel);
+        referencesButton_ = new QPushButton(QStringLiteral("多参考队"), panel);
         recommendButton_ = new QPushButton(QStringLiteral("推荐 Top 10"), panel);
         clearButton_ = new QPushButton(QStringLiteral("清空槽位"), panel);
         controls->addWidget(evaluateButton_);
+        controls->addWidget(referencesButton_);
         controls->addWidget(recommendButton_);
         controls->addWidget(clearButton_);
         controls->addStretch();
@@ -287,9 +329,10 @@ private:
         report_->setPlaceholderText(QStringLiteral("选择三名武将后进行评估"));
         tabs_->addTab(report_, QStringLiteral("评估结果"));
 
-        recommendations_ = new QTableWidget(0, 7, tabs_);
+        recommendations_ = new QTableWidget(0, 9, tabs_);
         recommendations_->setHorizontalHeaderLabels({QStringLiteral("排名"), QStringLiteral("综合分"),
-                                                     QStringLiteral("胜率%"), QStringLiteral("规则分"),
+                                                     QStringLiteral("胜率%"), QStringLiteral("平局%"),
+                                                     QStringLiteral("误差%"), QStringLiteral("规则分"),
                                                      QStringLiteral("兵种"), QStringLiteral("统御"), QStringLiteral("阵容")});
         recommendations_->setEditTriggers(QAbstractItemView::NoEditTriggers);
         recommendations_->setSelectionBehavior(QAbstractItemView::SelectRows);
@@ -298,9 +341,11 @@ private:
         recommendations_->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
         recommendations_->horizontalHeader()->setStretchLastSection(true);
         tabs_->addTab(recommendations_, QStringLiteral("推荐 Top-N"));
+        tabs_->addTab(buildAccountPage(), QStringLiteral("我的账号"));
         layout->addWidget(tabs_, 1);
 
         connect(evaluateButton_, &QPushButton::clicked, this, [this] { evaluate(); });
+        connect(referencesButton_, &QPushButton::clicked, this, [this] { evaluateReferences(); });
         connect(recommendButton_, &QPushButton::clicked, this, [this] { recommend(); });
         connect(clearButton_, &QPushButton::clicked, this, [this] { clearSlots(); });
         connect(recommendations_, &QTableWidget::cellDoubleClicked, this,
@@ -309,10 +354,116 @@ private:
         return panel;
     }
 
+    QTableWidget* makeTable(const QStringList& labels, QWidget* parent) {
+        auto* table = new QTableWidget(0, labels.size(), parent);
+        table->setHorizontalHeaderLabels(labels);
+        table->setEditTriggers(QAbstractItemView::NoEditTriggers);
+        table->setSelectionBehavior(QAbstractItemView::SelectRows);
+        table->setSelectionMode(QAbstractItemView::SingleSelection);
+        table->verticalHeader()->setVisible(false);
+        table->horizontalHeader()->setStretchLastSection(true);
+        for (int i = 0; i < labels.size() - 1; ++i)
+            table->horizontalHeader()->setSectionResizeMode(i, QHeaderView::ResizeToContents);
+        return table;
+    }
+
+    QWidget* buildAccountPage() {
+        auto* page = new QWidget(tabs_);
+        auto* layout = new QVBoxLayout(page);
+        layout->setContentsMargins(8, 8, 8, 8);
+
+        auto* accountBox = new QGroupBox(QStringLiteral("账号与存档"), page);
+        auto* accountLayout = new QHBoxLayout(accountBox);
+        accountLayout->addWidget(new QLabel(QStringLiteral("当前账号"), accountBox));
+        accountCombo_ = new QComboBox(accountBox);
+        accountCombo_->setMinimumWidth(180);
+        accountLayout->addWidget(accountCombo_);
+        createAccountButton_ = new QPushButton(QStringLiteral("新建账号"), accountBox);
+        accountLayout->addWidget(createAccountButton_);
+        accountRecommendButton_ = new QPushButton(QStringLiteral("账号推荐 Top 10"), accountBox);
+        accountLayout->addWidget(accountRecommendButton_);
+        accountLayout->addSpacing(12);
+        accountLayout->addWidget(new QLabel(QStringLiteral("存档文件"), accountBox));
+        const QString stateRoot = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+        accountPath_ = new QLineEdit(QDir(stateRoot).filePath(QStringLiteral("local_accounts.json")), accountBox);
+        accountPath_->setClearButtonEnabled(true);
+        accountLayout->addWidget(accountPath_, 1);
+        saveAccountsButton_ = new QPushButton(QStringLiteral("保存"), accountBox);
+        loadAccountsButton_ = new QPushButton(QStringLiteral("导入"), accountBox);
+        accountLayout->addWidget(saveAccountsButton_);
+        accountLayout->addWidget(loadAccountsButton_);
+        layout->addWidget(accountBox);
+
+        auto* splitter = new QSplitter(Qt::Horizontal, page);
+        splitter->setChildrenCollapsible(false);
+
+        auto* heroesBox = new QGroupBox(QStringLiteral("我的武将"), splitter);
+        auto* heroesLayout = new QVBoxLayout(heroesBox);
+        accountHeroSearch_ = new QLineEdit(heroesBox);
+        accountHeroSearch_->setPlaceholderText(QStringLiteral("搜索可添加武将"));
+        heroesLayout->addWidget(accountHeroSearch_);
+        accountHeroes_ = makeTable({QStringLiteral("武将"), QStringLiteral("阵营"), QStringLiteral("统御"), QStringLiteral("定位")}, heroesBox);
+        heroesLayout->addWidget(accountHeroes_, 1);
+        auto* heroControls = new QHBoxLayout;
+        heroControls->addWidget(new QLabel(QStringLiteral("红度"), heroesBox));
+        heroStars_ = new QSpinBox(heroesBox);
+        heroStars_->setRange(0, 5);
+        heroControls->addWidget(heroStars_);
+        addHeroButton_ = new QPushButton(QStringLiteral("加入 / 更新"), heroesBox);
+        removeHeroButton_ = new QPushButton(QStringLiteral("移除所选"), heroesBox);
+        heroControls->addWidget(addHeroButton_);
+        heroControls->addWidget(removeHeroButton_);
+        heroControls->addStretch();
+        heroesLayout->addLayout(heroControls);
+        heroesLayout->addWidget(new QLabel(QStringLiteral("已拥有（选择后可修改红度）"), heroesBox));
+        ownedHeroes_ = makeTable({QStringLiteral("武将"), QStringLiteral("阵营"), QStringLiteral("红度"), QStringLiteral("定位")}, heroesBox);
+        heroesLayout->addWidget(ownedHeroes_, 1);
+        splitter->addWidget(heroesBox);
+
+        auto* tacticsBox = new QGroupBox(QStringLiteral("我的传承战法池"), splitter);
+        auto* tacticsLayout = new QVBoxLayout(tacticsBox);
+        tacticSearch_ = new QLineEdit(tacticsBox);
+        tacticSearch_->setPlaceholderText(QStringLiteral("搜索可配装传承战法"));
+        tacticsLayout->addWidget(tacticSearch_);
+        availableTactics_ = makeTable({QStringLiteral("战法"), QStringLiteral("类型"), QStringLiteral("品质")}, tacticsBox);
+        tacticsLayout->addWidget(availableTactics_, 1);
+        auto* tacticControls = new QHBoxLayout;
+        addTacticButton_ = new QPushButton(QStringLiteral("加入战法池"), tacticsBox);
+        removeTacticButton_ = new QPushButton(QStringLiteral("移除所选"), tacticsBox);
+        tacticControls->addWidget(addTacticButton_);
+        tacticControls->addWidget(removeTacticButton_);
+        tacticControls->addStretch();
+        tacticsLayout->addLayout(tacticControls);
+        tacticsLayout->addWidget(new QLabel(QStringLiteral("账号战法池（账号推荐只会使用这些战法）"), tacticsBox));
+        ownedTactics_ = makeTable({QStringLiteral("战法"), QStringLiteral("类型"), QStringLiteral("品质")}, tacticsBox);
+        tacticsLayout->addWidget(ownedTactics_, 1);
+        splitter->addWidget(tacticsBox);
+        splitter->setStretchFactor(0, 1);
+        splitter->setStretchFactor(1, 1);
+        layout->addWidget(splitter, 1);
+
+        connect(accountCombo_, &QComboBox::currentIndexChanged, this, [this] {
+            if (!updatingAccounts_) loadCurrentAccount();
+        });
+        connect(createAccountButton_, &QPushButton::clicked, this, [this] { createAccount(); });
+        connect(accountRecommendButton_, &QPushButton::clicked, this, [this] { recommendAccount(); });
+        connect(saveAccountsButton_, &QPushButton::clicked, this, [this] { saveAccounts(); });
+        connect(loadAccountsButton_, &QPushButton::clicked, this, [this] { loadAccounts(); });
+        connect(accountHeroSearch_, &QLineEdit::textChanged, this, [this] { populateAccountHeroes(); });
+        connect(tacticSearch_, &QLineEdit::textChanged, this, [this] { populateAvailableTactics(); });
+        connect(addHeroButton_, &QPushButton::clicked, this, [this] { addOrUpdateAccountHero(); });
+        connect(removeHeroButton_, &QPushButton::clicked, this, [this] { removeAccountHero(); });
+        connect(ownedHeroes_, &QTableWidget::itemSelectionChanged, this, [this] { syncSelectedHeroStars(); });
+        connect(addTacticButton_, &QPushButton::clicked, this, [this] { addAccountTactic(); });
+        connect(removeTacticButton_, &QPushButton::clicked, this, [this] { removeAccountTactic(); });
+        return page;
+    }
+
     void setBusy(bool busy) {
         busy_ = busy;
         reloadButton_->setEnabled(!busy);
         evaluateButton_->setEnabled(!busy);
+        referencesButton_->setEnabled(!busy);
         recommendButton_->setEnabled(!busy);
         clearButton_->setEnabled(!busy);
     }
@@ -349,6 +500,7 @@ private:
             QJsonObject result;
             result.insert(QStringLiteral("load"), loadResult.object());
             result.insert(QStringLiteral("heroes"), callJson([] { return get_heroes(); }).array());
+            result.insert(QStringLiteral("tactics"), callJson([] { return get_tactics(); }).array());
             return QJsonDocument(result);
         }, [this, path](const QJsonDocument& doc) {
             const QJsonObject result = doc.object();
@@ -371,8 +523,22 @@ private:
                 hero.aptitude = item.value(QStringLiteral("aptitude")).toString();
                 if (hero.id >= 0) heroes_.push_back(hero);
             }
+            tactics_.clear();
+            for (const QJsonValue& value : result.value(QStringLiteral("tactics")).toArray()) {
+                const QJsonObject item = value.toObject();
+                Tactic tactic;
+                tactic.name = item.value(QStringLiteral("name")).toString();
+                tactic.type = item.value(QStringLiteral("type")).toString();
+                tactic.category = item.value(QStringLiteral("category")).toString();
+                tactic.quality = item.value(QStringLiteral("quality")).toString();
+                if (!tactic.name.isEmpty()) tactics_.push_back(tactic);
+            }
             clearSlots();
             applyFilter();
+            populateAccountHeroes();
+            populateAvailableTactics();
+            if (!accountStoreAutoLoaded_ && QFileInfo::exists(accountPath_->text().trimmed())) autoLoadAccounts();
+            else refreshAccountList();
             dataPath_->setText(path);
             const QJsonObject load = result.value(QStringLiteral("load")).toObject();
             if (load.value(QStringLiteral("ok")).toBool()) {
@@ -437,6 +603,299 @@ private:
         setActiveSlot(0);
     }
 
+    QString currentAccountId() const {
+        return accountCombo_ ? accountCombo_->currentData().toString() : QString();
+    }
+
+    void populateAccountHeroes() {
+        if (!accountHeroes_) return;
+        const QString query = accountHeroSearch_->text().trimmed();
+        accountHeroes_->setRowCount(0);
+        for (const Hero& hero : heroes_) {
+            if (!query.isEmpty() && !hero.name.contains(query, Qt::CaseInsensitive)) continue;
+            const int row = accountHeroes_->rowCount();
+            accountHeroes_->insertRow(row);
+            auto* name = new QTableWidgetItem(hero.name);
+            name->setData(Qt::UserRole, hero.id);
+            accountHeroes_->setItem(row, 0, name);
+            accountHeroes_->setItem(row, 1, new QTableWidgetItem(hero.kingdom));
+            accountHeroes_->setItem(row, 2, new QTableWidgetItem(QString::number(hero.cost)));
+            accountHeroes_->setItem(row, 3, new QTableWidgetItem(hero.role));
+        }
+    }
+
+    void populateAvailableTactics() {
+        if (!availableTactics_) return;
+        const QString query = tacticSearch_->text().trimmed();
+        availableTactics_->setRowCount(0);
+        for (const Tactic& tactic : tactics_) {
+            if (tactic.category != QStringLiteral("传承")) continue;
+            if (!query.isEmpty() && !tactic.name.contains(query, Qt::CaseInsensitive)) continue;
+            const int row = availableTactics_->rowCount();
+            availableTactics_->insertRow(row);
+            auto* name = new QTableWidgetItem(tactic.name);
+            name->setData(Qt::UserRole, tactic.name);
+            availableTactics_->setItem(row, 0, name);
+            availableTactics_->setItem(row, 1, new QTableWidgetItem(tactic.type));
+            availableTactics_->setItem(row, 2, new QTableWidgetItem(tactic.quality));
+        }
+    }
+
+    void refreshAccountView(const QJsonObject& account) {
+        currentAccount_ = account;
+        if (!ownedHeroes_ || !ownedTactics_) return;
+        ownedHeroes_->setRowCount(0);
+        for (const QJsonValue& value : account.value(QStringLiteral("heroes")).toArray()) {
+            const QJsonObject item = value.toObject();
+            const Hero* hero = heroById(item.value(QStringLiteral("heroId")).toInt(-1));
+            if (!hero) continue;
+            const int row = ownedHeroes_->rowCount();
+            ownedHeroes_->insertRow(row);
+            auto* name = new QTableWidgetItem(hero->name);
+            name->setData(Qt::UserRole, hero->id);
+            ownedHeroes_->setItem(row, 0, name);
+            ownedHeroes_->setItem(row, 1, new QTableWidgetItem(hero->kingdom));
+            ownedHeroes_->setItem(row, 2, new QTableWidgetItem(QString::number(item.value(QStringLiteral("stars")).toInt())));
+            ownedHeroes_->setItem(row, 3, new QTableWidgetItem(hero->role));
+        }
+        ownedTactics_->setRowCount(0);
+        for (const QJsonValue& value : account.value(QStringLiteral("tactics")).toArray()) {
+            const QJsonObject item = value.toObject();
+            const int row = ownedTactics_->rowCount();
+            ownedTactics_->insertRow(row);
+            auto* name = new QTableWidgetItem(item.value(QStringLiteral("name")).toString());
+            name->setData(Qt::UserRole, item.value(QStringLiteral("name")).toString());
+            ownedTactics_->setItem(row, 0, name);
+            ownedTactics_->setItem(row, 1, new QTableWidgetItem(item.value(QStringLiteral("type")).toString()));
+            ownedTactics_->setItem(row, 2, new QTableWidgetItem(item.value(QStringLiteral("quality")).toString()));
+        }
+        heroStars_->setValue(0);
+    }
+
+    void refreshAccountList(const QString& selectedId = QString()) {
+        runTask(QStringLiteral("正在读取账号..."), [] {
+            return callJson([] { return list_local_accounts(); });
+        }, [this, selectedId](const QJsonDocument& doc) {
+            if (!doc.isArray()) return;
+            const QString desired = selectedId.isEmpty() ? currentAccountId() : selectedId;
+            updatingAccounts_ = true;
+            accountCombo_->clear();
+            for (const QJsonValue& value : doc.array()) {
+                const QJsonObject account = value.toObject();
+                accountCombo_->addItem(account.value(QStringLiteral("name")).toString(), account.value(QStringLiteral("id")).toString());
+            }
+            int index = accountCombo_->findData(desired);
+            if (index < 0 && accountCombo_->count() > 0) index = 0;
+            accountCombo_->setCurrentIndex(index);
+            updatingAccounts_ = false;
+            if (index >= 0) loadCurrentAccount();
+            else refreshAccountView(QJsonObject());
+        });
+    }
+
+    void loadCurrentAccount() {
+        const QString id = currentAccountId();
+        if (id.isEmpty()) { refreshAccountView(QJsonObject()); return; }
+        runTask(QStringLiteral("正在读取账号详情..."), [id] {
+            const QByteArray bytes = id.toUtf8();
+            return callJson([&] { return get_local_account(bytes.constData()); });
+        }, [this](const QJsonDocument& doc) {
+            const QJsonObject account = doc.object();
+            if (account.value(QStringLiteral("ok")).toBool()) refreshAccountView(account);
+        });
+    }
+
+    bool prepareAccountPath() {
+        const QString path = accountPath_->text().trimmed();
+        if (path.isEmpty()) {
+            QMessageBox::warning(this, QStringLiteral("无法保存"), QStringLiteral("请指定账号存档文件。"));
+            return false;
+        }
+        if (!QDir().mkpath(QFileInfo(path).absolutePath())) {
+            QMessageBox::warning(this, QStringLiteral("无法保存"), QStringLiteral("无法创建账号存档目录。"));
+            return false;
+        }
+        return true;
+    }
+
+    void createAccount() {
+        bool accepted = false;
+        const QString name = QInputDialog::getText(this, QStringLiteral("新建账号"), QStringLiteral("账号名称"),
+                                                   QLineEdit::Normal, QStringLiteral("我的账号"), &accepted).trimmed();
+        if (!accepted) return;
+        if (!prepareAccountPath()) return;
+        runTask(QStringLiteral("正在创建账号..."), [name, path = accountPath_->text().trimmed()] {
+            const QByteArray nameBytes = name.toUtf8();
+            const QByteArray pathBytes = QFile::encodeName(path);
+            const QJsonDocument created = callJson([&] { return create_local_account(nameBytes.constData()); });
+            const QJsonDocument saved = callJson([&] { return save_local_accounts(pathBytes.constData()); });
+            QJsonObject result = created.object();
+            result.insert(QStringLiteral("saved"), saved.object().value(QStringLiteral("ok")).toBool());
+            return QJsonDocument(result);
+        }, [this](const QJsonDocument& doc) {
+            const QJsonObject account = doc.object();
+            if (!account.value(QStringLiteral("ok")).toBool()) return;
+            refreshAccountList(account.value(QStringLiteral("id")).toString());
+            statusBar()->showMessage(QStringLiteral("已创建账号 %1").arg(account.value(QStringLiteral("name")).toString()));
+        });
+    }
+
+    void saveAccounts() {
+        if (!prepareAccountPath()) return;
+        const QString path = accountPath_->text().trimmed();
+        runTask(QStringLiteral("正在保存账号..."), [path] {
+            const QByteArray bytes = QFile::encodeName(path);
+            return callJson([&] { return save_local_accounts(bytes.constData()); });
+        }, [this](const QJsonDocument& doc) {
+            const QJsonObject result = doc.object();
+            statusBar()->showMessage(result.value(QStringLiteral("ok")).toBool()
+                ? QStringLiteral("账号已保存") : QStringLiteral("账号保存失败：") + result.value(QStringLiteral("error")).toString());
+        });
+    }
+
+    void loadAccounts() {
+        const QString path = QFileDialog::getOpenFileName(this, QStringLiteral("导入账号存档"), accountPath_->text(),
+                                                          QStringLiteral("JSON 文件 (*.json);;所有文件 (*)"));
+        if (path.isEmpty()) return;
+        accountPath_->setText(path);
+        accountStoreAutoLoaded_ = true;
+        runTask(QStringLiteral("正在导入账号..."), [path] {
+            const QByteArray bytes = QFile::encodeName(path);
+            return callJson([&] { return load_local_accounts(bytes.constData()); });
+        }, [this](const QJsonDocument& doc) {
+            const QJsonObject result = doc.object();
+            if (!result.value(QStringLiteral("ok")).toBool()) {
+                QMessageBox::warning(this, QStringLiteral("导入失败"), result.value(QStringLiteral("error")).toString());
+                return;
+            }
+            refreshAccountList();
+            statusBar()->showMessage(QStringLiteral("账号存档已导入"));
+        });
+    }
+
+    void autoLoadAccounts() {
+        const QString path = accountPath_->text().trimmed();
+        accountStoreAutoLoaded_ = true;
+        runTask(QStringLiteral("正在恢复本地账号..."), [path] {
+            const QByteArray bytes = QFile::encodeName(path);
+            return callJson([&] { return load_local_accounts(bytes.constData()); });
+        }, [this](const QJsonDocument& doc) {
+            const QJsonObject result = doc.object();
+            if (result.value(QStringLiteral("ok")).toBool()) {
+                refreshAccountList();
+                statusBar()->showMessage(QStringLiteral("已恢复本地账号存档"));
+            } else {
+                refreshAccountList();
+            }
+        });
+    }
+
+    void persistAccountMutation(const QJsonDocument& doc) {
+        const QJsonObject account = doc.object();
+        if (!account.value(QStringLiteral("ok")).toBool()) {
+            QMessageBox::warning(this, QStringLiteral("账号更新失败"), account.value(QStringLiteral("error")).toString());
+            return;
+        }
+        refreshAccountView(account);
+        statusBar()->showMessage(QStringLiteral("账号已更新并保存"));
+    }
+
+    void addOrUpdateAccountHero() {
+        const QString accountId = currentAccountId();
+        const int row = accountHeroes_->currentRow();
+        if (accountId.isEmpty() || row < 0 || !accountHeroes_->item(row, 0)) {
+            statusBar()->showMessage(QStringLiteral("请先创建账号并选择一名武将"));
+            return;
+        }
+        if (!prepareAccountPath()) return;
+        const int heroId = accountHeroes_->item(row, 0)->data(Qt::UserRole).toInt();
+        const int stars = heroStars_->value();
+        const QString path = accountPath_->text().trimmed();
+        runTask(QStringLiteral("正在更新账号武将..."), [accountId, heroId, stars, path] {
+            const QByteArray id = accountId.toUtf8();
+            const QByteArray savePath = QFile::encodeName(path);
+            const QJsonDocument result = callJson([&] { return set_local_account_hero(id.constData(), heroId, stars, 1); });
+            callJson([&] { return save_local_accounts(savePath.constData()); });
+            return result;
+        }, [this](const QJsonDocument& doc) { persistAccountMutation(doc); });
+    }
+
+    void removeAccountHero() {
+        const QString accountId = currentAccountId();
+        const int row = ownedHeroes_->currentRow();
+        if (accountId.isEmpty() || row < 0 || !ownedHeroes_->item(row, 0)) return;
+        if (!prepareAccountPath()) return;
+        const int heroId = ownedHeroes_->item(row, 0)->data(Qt::UserRole).toInt();
+        const QString path = accountPath_->text().trimmed();
+        runTask(QStringLiteral("正在移除账号武将..."), [accountId, heroId, path] {
+            const QByteArray id = accountId.toUtf8();
+            const QByteArray savePath = QFile::encodeName(path);
+            const QJsonDocument result = callJson([&] { return set_local_account_hero(id.constData(), heroId, 0, 0); });
+            callJson([&] { return save_local_accounts(savePath.constData()); });
+            return result;
+        }, [this](const QJsonDocument& doc) { persistAccountMutation(doc); });
+    }
+
+    void syncSelectedHeroStars() {
+        const int row = ownedHeroes_->currentRow();
+        if (row >= 0 && ownedHeroes_->item(row, 2)) heroStars_->setValue(ownedHeroes_->item(row, 2)->text().toInt());
+    }
+
+    void addAccountTactic() {
+        const QString accountId = currentAccountId();
+        const int row = availableTactics_->currentRow();
+        if (accountId.isEmpty() || row < 0 || !availableTactics_->item(row, 0)) {
+            statusBar()->showMessage(QStringLiteral("请先创建账号并选择一项传承战法"));
+            return;
+        }
+        if (!prepareAccountPath()) return;
+        const QString tactic = availableTactics_->item(row, 0)->data(Qt::UserRole).toString();
+        const QString path = accountPath_->text().trimmed();
+        runTask(QStringLiteral("正在加入战法池..."), [accountId, tactic, path] {
+            const QByteArray id = accountId.toUtf8(), name = tactic.toUtf8(), savePath = QFile::encodeName(path);
+            const QJsonDocument result = callJson([&] { return set_local_account_tactic(id.constData(), name.constData(), 1); });
+            callJson([&] { return save_local_accounts(savePath.constData()); });
+            return result;
+        }, [this](const QJsonDocument& doc) { persistAccountMutation(doc); });
+    }
+
+    void removeAccountTactic() {
+        const QString accountId = currentAccountId();
+        const int row = ownedTactics_->currentRow();
+        if (accountId.isEmpty() || row < 0 || !ownedTactics_->item(row, 0)) return;
+        if (!prepareAccountPath()) return;
+        const QString tactic = ownedTactics_->item(row, 0)->data(Qt::UserRole).toString();
+        const QString path = accountPath_->text().trimmed();
+        runTask(QStringLiteral("正在移除战法池..."), [accountId, tactic, path] {
+            const QByteArray id = accountId.toUtf8(), name = tactic.toUtf8(), savePath = QFile::encodeName(path);
+            const QJsonDocument result = callJson([&] { return set_local_account_tactic(id.constData(), name.constData(), 0); });
+            callJson([&] { return save_local_accounts(savePath.constData()); });
+            return result;
+        }, [this](const QJsonDocument& doc) { persistAccountMutation(doc); });
+    }
+
+    void recommendAccount() {
+        const QString accountId = currentAccountId();
+        if (accountId.isEmpty()) {
+            statusBar()->showMessage(QStringLiteral("请先创建或导入账号"));
+            return;
+        }
+        runTask(QStringLiteral("正在按账号武将与战法池推荐..."), [accountId] {
+            const QByteArray id = accountId.toUtf8();
+            return callJson([&] { return recommend_account_teams(id.constData(), 10); });
+        }, [this](const QJsonDocument& doc) {
+            const QJsonObject result = doc.object();
+            if (!result.value(QStringLiteral("ok")).toBool()) {
+                QMessageBox::warning(this, QStringLiteral("账号推荐失败"), result.value(QStringLiteral("error")).toString());
+                return;
+            }
+            showRecommendations(result.value(QStringLiteral("recommendations")).toArray());
+            statusBar()->showMessage(QStringLiteral("账号推荐完成：使用 %1 名武将、%2 项战法池")
+                .arg(currentAccount_.value(QStringLiteral("heroes")).toArray().size())
+                .arg(result.value(QStringLiteral("tacticPoolSize")).toInt()));
+        });
+    }
+
     bool completeTeam() const {
         return slots_[0].id >= 0 && slots_[1].id >= 0 && slots_[2].id >= 0;
     }
@@ -450,9 +909,48 @@ private:
         const int id1 = slots_[1].id;
         const int id2 = slots_[2].id;
         const int troop = troop_->currentData().toInt();
-        runTask(QStringLiteral("评估中..."), [id0, id1, id2, troop] {
-            return callJson([=] { return evaluate_team_troop(id0, id1, id2, troop); });
+        const int mainIdx = mainHero_->currentData().toInt();
+        runTask(QStringLiteral("评估中..."), [id0, id1, id2, troop, mainIdx] {
+            return callJson([=] { return evaluate_team_main(id0, id1, id2, troop, mainIdx); });
         }, [this](const QJsonDocument& doc) { showReport(doc.object()); });
+    }
+
+    void evaluateReferences() {
+        if (!completeTeam()) {
+            statusBar()->showMessage(QStringLiteral("请先在三个槽位选满武将"));
+            return;
+        }
+        const int id0 = slots_[0].id;
+        const int id1 = slots_[1].id;
+        const int id2 = slots_[2].id;
+        const int troop = troop_->currentData().toInt();
+        const int mainIdx = mainHero_->currentData().toInt();
+        runTask(QStringLiteral("多参考队评估中..."), [id0, id1, id2, troop, mainIdx] {
+            return callJson([=] { return evaluate_team_references(id0, id1, id2, troop, mainIdx, 200); });
+        }, [this](const QJsonDocument& doc) {
+            const QJsonObject result = doc.object();
+            if (!result.value(QStringLiteral("ok")).toBool()) {
+                report_->setPlainText(QStringLiteral("多参考队评估失败：") + result.value(QStringLiteral("error")).toString());
+                statusBar()->showMessage(QStringLiteral("多参考队评估失败"));
+                return;
+            }
+            QString text;
+            QTextStream out(&text);
+            out << "多参考队评估：" << result.value("referenceCount").toInt() << " 套\n"
+                << "平均胜率 " << number(result.value("averageWinRate").toDouble() * 100.0)
+                << "%   最低胜率 " << number(result.value("minimumWinRate").toDouble() * 100.0) << "%\n\n";
+            for (const QJsonValue& value : result.value("references").toArray()) {
+                const QJsonObject row = value.toObject();
+                out << row.value("name").toString() << "：胜率 " << number(row.value("winRate").toDouble() * 100.0)
+                    << "%，平局 " << number(row.value("drawRate").toDouble() * 100.0)
+                    << "%，95%区间 [" << number(row.value("winRateCi95Low").toDouble() * 100.0)
+                    << "%, " << number(row.value("winRateCi95High").toDouble() * 100.0) << "%]\n";
+            }
+            out << "\n说明：参考队是固定模板，结果用于横向校验，不代表完整赛季环境。";
+            report_->setPlainText(text);
+            tabs_->setCurrentIndex(0);
+            statusBar()->showMessage(QStringLiteral("多参考队评估完成"));
+        });
     }
 
     void showReport(const QJsonObject& report) {
@@ -472,6 +970,7 @@ private:
         QTextStream out(&text);
         out << "综合评分：" << number(report.value("total").toDouble()) << " / 100\n";
         out << "阵容：" << nameList.join(QStringLiteral(" / "))
+            << "   主将：" << report.value("mainName").toString()
             << "   兵种：" << report.value("troop").toString()
             << "   统御：" << report.value("cost").toInt() << "/20\n\n";
         out << "【评分分解】\n  兵种适性 " << number(rule.value("aptitude").toDouble(), 0)
@@ -497,7 +996,13 @@ private:
             out << "\n【战斗统计】（vs 桃园）\n  模拟 " << battle.value("sims").toInt()
                 << " 场：胜率 " << number(battle.value("winRate").toDouble() * 100.0)
                 << "%   场均输出 " << number(battle.value("avgDmgDealt").toDouble(), 0)
-                << "  场均承伤 " << number(battle.value("avgDmgTaken").toDouble(), 0) << "\n";
+                << "  场均承伤 " << number(battle.value("avgDmgTaken").toDouble(), 0) << "\n"
+                << "  平局率 " << number(battle.value("drawRate").toDouble() * 100.0)
+                << "%   胜率标准误 +/-" << number(battle.value("winRateStdError").toDouble() * 100.0) << "%\n"
+                << "  95%区间 [" << number(battle.value("winRateCi95Low").toDouble() * 100.0)
+                << "%, " << number(battle.value("winRateCi95High").toDouble() * 100.0)
+                << "%]   种子 " << QString::number(static_cast<qulonglong>(battle.value("seed").toDouble())) << "\n"
+                << "  说明：结果仅表示当前简化规则下对固定桃园参考队的比较。\n";
         }
         const QJsonArray synergies = report.value("synergies").toArray();
         if (!synergies.isEmpty()) {
@@ -541,12 +1046,16 @@ private:
                 const Hero* hero = heroById(id.toInt(-1));
                 names << (hero ? hero->name : QStringLiteral("未知"));
             }
+            if (!names.isEmpty()) names[0] = QStringLiteral("主") + names[0];
             const QString values[] = {
                 QString::number(row + 1), number(entry.value("total").toDouble()),
-                number(entry.value("winRate").toDouble() * 100.0), number(entry.value("rule").toDouble()),
+                number(entry.value("winRate").toDouble() * 100.0),
+                number(entry.value("drawRate").toDouble() * 100.0),
+                number(entry.value("winRateStdError").toDouble() * 100.0),
+                number(entry.value("rule").toDouble()),
                 entry.value("troop").toString(), QString::number(entry.value("cost").toInt()), names.join(QStringLiteral(" / "))
             };
-            for (int column = 0; column < 7; ++column)
+            for (int column = 0; column < 9; ++column)
                 recommendations_->setItem(row, column, new QTableWidgetItem(values[column]));
         }
         tabs_->setCurrentIndex(1);
@@ -562,6 +1071,7 @@ private:
             if (!hero) return;
             slots_[i] = *hero;
         }
+        mainHero_->setCurrentIndex(0);
         setActiveSlot(0);
         evaluate();
     }

@@ -65,6 +65,7 @@ struct Effect {
     bool selfOnly = false;    // 目标为自身
     bool mainOnly = false;    // 仅主将
     bool deputyOnly = false;  // 仅副将
+    enum TargetMode { RANDOM, MOST_WOUNDED, HIGHEST_FORCE, HIGHEST_INTELLECT, MAIN } targetMode = RANDOM;
     int boostType = 0;        // E_TRIGGER_BOOST: 0=主动 1=突击
     std::vector<St> statuses;
     std::vector<St> requiresStatus; // 目标需已处于这些状态之一才生效
@@ -88,6 +89,8 @@ struct TacticEffects {
     std::vector<Effect> permanent;
     std::vector<Scheduled> scheduled;
     std::string note; // 解析说明（调试用）
+    // 精选表已直接写入资料确认的 Lv10 数值时设为 true，避免战斗期重复放大。
+    bool ratesAreMaxLevel = false;
 };
 
 // 解析单个战法（关键词抽取 + 精选精确定义覆盖）

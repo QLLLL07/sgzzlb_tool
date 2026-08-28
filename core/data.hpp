@@ -45,6 +45,10 @@ struct Tactic {
     std::string id, name, type, category, quality, triggerRate;
     std::vector<std::string> validTroops; // 兵种战法限定，如 ["cavalry"]
     std::string sourceHero, description;
+    // 从可校验的 Lv10 资料挂载；description 始终保留原始 1 级数据文本。
+    std::string maxLevelDescription, maxLevelReliability;
+    bool hasMaxLevelData = false;
+    bool maxLevelVersionConflict = false;
     bool fitsTroop(TroopType t) const {
         if (validTroops.empty()) return true;
         std::string k = troopKey(t);

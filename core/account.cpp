@@ -30,6 +30,20 @@ jq::Json accountJsonUnlocked(const LocalAccount& a) {
         heroes.push_back(h);
     }
     j.set("heroes", heroes);
+    jq::Json tactics = jq::Json::array();
+    std::vector<std::string> sortedTactics(a.tactics.begin(), a.tactics.end());
+    std::sort(sortedTactics.begin(), sortedTactics.end());
+    for (const std::string& name : sortedTactics) {
+        jq::Json tactic = jq::Json::object();
+        tactic.set("name", name);
+        if (const Tactic* source = store().tacticByName(name)) {
+            tactic.set("type", source->type);
+            tactic.set("quality", source->quality);
+            tactic.set("category", source->category);
+        }
+        tactics.push_back(tactic);
+    }
+    j.set("tactics", tactics);
     return j;
 }
 } // namespace
@@ -55,6 +69,20 @@ bool setAccountHero(const std::string& accountId, int heroId, int stars, bool ow
     return false;
 }
 
+bool setAccountTactic(const std::string& accountId, const std::string& tacticName, bool owned) {
+    const Tactic* tactic = store().tacticByName(tacticName);
+    // 账号战法池对应“可配装”的传承战法，避免将武将自带战法错误加入库存。
+    if (!tactic || !tactic->isInheritable() || !tactic->isCombat()) return false;
+    std::lock_guard<std::mutex> lock(g_accountsMutex);
+    for (LocalAccount& account : g_accounts) {
+        if (account.id != accountId) continue;
+        if (owned) account.tactics.insert(tactic->name);
+        else account.tactics.erase(tactic->name);
+        return true;
+    }
+    return false;
+}
+
 bool getAccount(const std::string& accountId, LocalAccount& out) {
     std::lock_guard<std::mutex> lock(g_accountsMutex);
     for (const LocalAccount& a : g_accounts)
@@ -75,7 +103,7 @@ void clearAccounts() {
 bool saveAccounts(const char* path, std::string& error) {
     if (!path || !path[0]) { error = "账号文件路径为空"; return false; }
     jq::Json root = jq::Json::object();
-    root.set("version", 1.0);
+    root.set("version", 2.0);
     root.set("accounts", accountsToJson());
     std::string tmpPath = std::string(path) + ".tmp";
     std::ofstream f(tmpPath, std::ios::trunc);
@@ -116,6 +144,13 @@ bool loadAccounts(const char* path, std::string& error) {
                 int id = heroes[h].get("heroId").asInt(-1);
                 if (store().heroByIndex(id))
                     a.heroes[id] = std::max(0, std::min(5, heroes[h].get("stars").asInt(0)));
+            }
+            const jq::Json& tactics = j.get("tactics");
+            if (tactics.isArray()) for (size_t t = 0; t < tactics.size(); ++t) {
+                const jq::Json& item = tactics[t];
+                const std::string name = item.isString() ? item.asString() : item.get("name").asString();
+                const Tactic* tactic = store().tacticByName(name);
+                if (tactic && tactic->isInheritable() && tactic->isCombat()) a.tactics.insert(tactic->name);
             }
             loaded.push_back(std::move(a));
         }
