@@ -38,7 +38,7 @@ struct Hero {
     char aptitudeOf(TroopType t) const { return apt[(int)t]; }
 };
 
-// 红度 0..5：每级使基础属性与成长属性提高 2%。返回副本，绝不修改全局武将数据。
+// 兼容旧内部调用。红度不修改基础/成长属性，实际红度效果在 TeamConfig 中处理。
 Hero heroWithRedStars(const Hero& h, int redStars);
 
 struct Tactic {

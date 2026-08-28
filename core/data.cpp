@@ -10,14 +10,10 @@ static DataStore g_store;
 DataStore& store() { return g_store; }
 
 Hero heroWithRedStars(const Hero& h, int redStars) {
-    Hero adjusted = h;
-    int stars = std::max(0, std::min(5, redStars));
-    double multiplier = 1.0 + 0.02 * stars;
-    adjusted.fBase *= multiplier; adjusted.fGrow *= multiplier;
-    adjusted.iBase *= multiplier; adjusted.iGrow *= multiplier;
-    adjusted.cBase *= multiplier; adjusted.cGrow *= multiplier;
-    adjusted.sBase *= multiplier; adjusted.sGrow *= multiplier;
-    return adjusted;
+    // 红度不再修改基础值/成长值。保留该函数作为 ABI 内部兼容入口；
+    // 红度的出伤/减伤和自由点在 TeamConfig 中按战斗构建参数处理。
+    (void)redStars;
+    return h;
 }
 
 void loadBuiltinFallback() {

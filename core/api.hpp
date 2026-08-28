@@ -12,6 +12,7 @@ const char* recommend_teams(int top_n);
 const char* recommend_tactics(int hero_id, int teammate1_id, int teammate2_id, int top_n, int sims);
 const char* recommend_account_teams(const char* account_id, int top_n);
 const char* evaluate_team_stars(int id1, int id2, int id3, int stars1, int stars2, int stars3);
+const char* evaluate_team_build(const char* build_json);
 const char* get_tactic_max_level(const char* name);
 const char* get_tactics_max_level();
 const char* create_local_account(const char* name);

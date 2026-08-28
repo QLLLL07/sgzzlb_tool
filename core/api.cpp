@@ -135,15 +135,19 @@ jq::Json evaluateTeamImpl(int id1, int id2, int id3, int troop = -1) {
     return j;
 }
 
-jq::Json evaluateTeamStarsImpl(int id1, int id2, int id3, const int stars[3]) {
+jq::Json evaluateTeamStarsImpl(int id1, int id2, int id3, const int stars[3],
+                               const int freeAttrs[3][4] = nullptr) {
     auto& st = store();
     const Hero* src[3] = {st.heroByIndex(id1), st.heroByIndex(id2), st.heroByIndex(id3)};
     jq::Json err = jq::Json::object(); err.set("ok", false);
     if (!src[0] || !src[1] || !src[2]) { err.set("error", "武将下标越界"); return err; }
-    Hero adjusted[3];
-    for (int i = 0; i < 3; ++i) adjusted[i] = heroWithRedStars(*src[i], stars[i]);
     TeamConfig tc;
-    for (int i = 0; i < 3; ++i) tc.hero[i] = &adjusted[i];
+    for (int i = 0; i < 3; ++i) {
+        tc.hero[i] = src[i];
+        tc.redStars[i] = std::max(0, std::min(5, stars[i]));
+        if (freeAttrs) for (int k = 0; k < 4; ++k)
+            tc.freeAttributes[i][k] = std::max(0, freeAttrs[i][k]);
+    }
     tc.mainIdx = 0; tc.troop = bestTroopType(tc.hero); tc.tacticLevel = 10; assignTactics(tc);
     RuleScore rs = ruleScore(tc); BattleStats bst; TeamConfig ref;
     if (buildReferenceTeam(ref)) bst = simulateBattle(tc, ref, 200, 12345); else bst.sims = 0;
@@ -156,11 +160,50 @@ jq::Json evaluateTeamStarsImpl(int id1, int id2, int id3, const int stars[3]) {
     jq::Json arr = jq::Json::array(); for (int i = 0; i < 3; ++i) arr.push_back((double)std::max(0,std::min(5,stars[i])));
     out.set("redStars", arr); out.set("tacticLevel", 10.0);
     jq::Json multipliers = jq::Json::array();
-    for (int i = 0; i < 3; ++i) multipliers.push_back(1.0 + 0.02 * std::max(0, std::min(5, stars[i])));
+    // 红度不修改基础属性/成长值；保留该字段表示属性倍率恒为 1.0，
+    // 出伤和减伤倍率分别由下面两个字段返回。
+    for (int i = 0; i < 3; ++i) multipliers.push_back(1.0);
     out.set("redStarAttributeMultiplier", multipliers);
+    jq::Json attrs = jq::Json::array();
+    for (int i = 0; i < 3; ++i) {
+        jq::Json row = jq::Json::array();
+        for (int k = 0; k < 4; ++k) row.push_back((double)tc.freeAttributes[i][k]);
+        attrs.push_back(row);
+    }
+    out.set("freeAttributes", attrs);
+    jq::Json redDamage = jq::Json::array();
+    jq::Json redReduction = jq::Json::array();
+    for (int i = 0; i < 3; ++i) {
+        redDamage.push_back(3.0 * tc.redStars[i]);
+        redReduction.push_back(3.0 * tc.redStars[i]);
+    }
+    out.set("redDamageBonusPercent", redDamage);
+    out.set("redDamageReductionPercent", redReduction);
     out.set("battleWinRateWithRedStars", bst.winRate);
-    out.set("evidence", "红度属性副本 + 8回合蒙特卡洛");
+    out.set("evidence", "红度增伤/减伤 + 自由属性点 + 8回合蒙特卡洛");
     return out;
+}
+
+jq::Json evaluateTeamBuildJson(const char* text) {
+    jq::Json error = jq::Json::object(); error.set("ok", false);
+    try {
+        jq::Json root = jq::Json::parse(text ? text : "");
+        const jq::Json& hs = root.get("heroes");
+        if (!hs.isArray() || hs.size() != 3) { error.set("error", "heroes 必须是长度为 3 的数组"); return error; }
+        int ids[3] = {-1, -1, -1}, stars[3] = {0, 0, 0}, points[3][4] = {};
+        static const char* keys[4] = {"force", "intellect", "command", "speed"};
+        for (int i = 0; i < 3; ++i) {
+            ids[i] = hs[(size_t)i].get("id").asInt(-1);
+            stars[i] = hs[(size_t)i].get("stars").asInt(0);
+            const jq::Json& p = hs[(size_t)i].get("freeAttributes");
+            for (int k = 0; k < 4; ++k) points[i][k] = p.get(keys[k]).asInt(0);
+            int sum = 0; for (int k = 0; k < 4; ++k) sum += std::max(0, points[i][k]);
+            if (sum > 10) { error.set("error", "每名武将 freeAttributes 总和不能超过 10"); return error; }
+        }
+        return evaluateTeamStarsImpl(ids[0], ids[1], ids[2], stars, points);
+    } catch (const std::exception& e) {
+        error.set("error", std::string("构建 JSON 解析失败: ") + e.what()); return error;
+    }
 }
 
 } // namespace
@@ -284,6 +327,13 @@ API_EXPORT const char* evaluate_team_stars(int id1, int id2, int id3, int stars1
     return sgz::dupJson(sgz::evaluateTeamStarsImpl(id1, id2, id3, stars));
 }
 
+// 按 JSON 构建队伍并分配每名武将最多 10 点自由属性。
+// 格式：{"heroes":[{"id":1,"stars":5,"freeAttributes":{"force":10}}...]}。
+API_EXPORT const char* evaluate_team_build(const char* build_json) {
+    sgz::ensureLoaded();
+    return sgz::dupJson(sgz::evaluateTeamBuildJson(build_json));
+}
+
 // 仅从本地账号已拥有的武将中推荐；红度会进入候选的实战模拟。
 API_EXPORT const char* recommend_account_teams(const char* account_id, int top_n) {
     sgz::ensureLoaded();
@@ -299,7 +349,7 @@ API_EXPORT const char* recommend_account_teams(const char* account_id, int top_n
     auto entries = sgz::recommendTeams(top_n, 200, 200, &owned, &account.heroes);
     jq::Json out = jq::Json::object(); out.set("ok", true); out.set("accountId", account.id);
     out.set("recommendations", sgz::recommendToJson(entries));
-    out.set("evidence", "只枚举已拥有武将，红度属性进入8回合蒙特卡洛");
+    out.set("evidence", "只枚举已拥有武将，红度增伤/减伤进入8回合蒙特卡洛");
     return sgz::dupJson(out);
 }
 

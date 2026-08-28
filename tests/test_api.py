@@ -45,6 +45,7 @@ def load_lib():
     lib.reload_data.restype = ctypes.c_void_p
     lib.evaluate_team.restype = ctypes.c_void_p
     lib.evaluate_team_stars.restype = ctypes.c_void_p
+    lib.evaluate_team_build.restype = ctypes.c_void_p
     lib.recommend_teams.restype = ctypes.c_void_p
     lib.recommend_tactics.restype = ctypes.c_void_p
     lib.recommend_account_teams.restype = ctypes.c_void_p
@@ -62,6 +63,7 @@ def load_lib():
     lib.evaluate_team.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_int]
     lib.evaluate_team_stars.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_int,
                                         ctypes.c_int, ctypes.c_int, ctypes.c_int]
+    lib.evaluate_team_build.argtypes = [ctypes.c_char_p]
     lib.recommend_teams.argtypes = [ctypes.c_int]
     lib.recommend_tactics.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int]
     lib.recommend_account_teams.argtypes = [ctypes.c_char_p, ctypes.c_int]
@@ -132,8 +134,25 @@ def main():
     red = json.loads(call(lib, lib.evaluate_team_stars, liu, guan, zhang, 5, 4, 3))
     check("红度评估 ok", red.get("ok") is True and red.get("redStars") == [5, 4, 3], str(red))
     check("红度进入战斗", red.get("battle", {}).get("sims") == 200 and
-          red.get("redStarAttributeMultiplier") == [1.1, 1.08, 1.06] and
+          red.get("redStarAttributeMultiplier") == [1, 1, 1] and
+          red.get("redDamageBonusPercent") == [15, 12, 9] and
+          red.get("redDamageReductionPercent") == [15, 12, 9] and
           "battleWinRateWithRedStars" in red, str(red))
+
+    print("== 红度自由属性点 ==")
+    build = {"heroes": [
+        {"id": liu, "stars": 5, "freeAttributes": {"intellect": 10}},
+        {"id": guan, "stars": 4, "freeAttributes": {"force": 6, "command": 4}},
+        {"id": zhang, "stars": 3, "freeAttributes": {"force": 10}},
+    ]}
+    built = json.loads(call(lib, lib.evaluate_team_build, json.dumps(build, ensure_ascii=False).encode("utf-8")))
+    check("自由属性点评估 ok", built.get("ok") is True and
+          built.get("freeAttributes") == [[0, 10, 0, 0], [6, 0, 4, 0], [10, 0, 0, 0]], str(built))
+    over = dict(build)
+    over["heroes"] = list(build["heroes"])
+    over["heroes"][0] = {"id": liu, "stars": 5, "freeAttributes": {"force": 11}}
+    over_rep = json.loads(call(lib, lib.evaluate_team_build, json.dumps(over, ensure_ascii=False).encode("utf-8")))
+    check("自由属性点超额拒绝", over_rep.get("ok") is False, str(over_rep))
 
     print("== 实战战法推荐 ==")
     tactic_recs = json.loads(call(lib, lib.recommend_tactics, guan, liu, zhang, 3, 30))

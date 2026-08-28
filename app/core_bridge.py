@@ -70,6 +70,7 @@ class CoreBridge:
                      "evaluate_team_troop", "recommend_teams", "recommend_account_teams",
                      "recommend_tactics",
                      "evaluate_team_stars", "get_tactic_max_level", "get_tactics_max_level",
+                     "evaluate_team_build",
                      "create_local_account", "set_local_account_hero", "get_local_account",
                      "list_local_accounts", "save_local_accounts", "load_local_accounts",
                      "get_heroes", "get_tactics"):
@@ -85,6 +86,7 @@ class CoreBridge:
         lib.recommend_account_teams.argtypes = [ctypes.c_char_p, ctypes.c_int]
         lib.evaluate_team_stars.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_int,
                                             ctypes.c_int, ctypes.c_int, ctypes.c_int]
+        lib.evaluate_team_build.argtypes = [ctypes.c_char_p]
         lib.get_tactic_max_level.argtypes = [ctypes.c_char_p]
         lib.create_local_account.argtypes = [ctypes.c_char_p]
         lib.set_local_account_hero.argtypes = [ctypes.c_char_p, ctypes.c_int, ctypes.c_int, ctypes.c_int]
@@ -166,6 +168,13 @@ class CoreBridge:
         raw = self._call(self._lib.evaluate_team_stars, int(id1), int(id2), int(id3),
                          int(stars1), int(stars2), int(stars3))
         return json.loads(raw)
+
+    def evaluate_team_build(self, heroes: list[dict]) -> dict:
+        """评估带红度和自由属性点的队伍；每名武将 freeAttributes 合计最多 10 点。"""
+        if len(heroes) != 3:
+            raise ValueError("heroes 必须包含 3 名武将")
+        payload = json.dumps({"heroes": heroes}, ensure_ascii=False, separators=(",", ":"))
+        return json.loads(self._call(self._lib.evaluate_team_build, payload.encode("utf-8")))
 
     def tactic_max_level(self, name: str) -> dict:
         """返回指定战法的满级数值模型和原始资料。"""

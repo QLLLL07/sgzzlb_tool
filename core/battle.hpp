@@ -13,6 +13,9 @@ struct TeamConfig {
     int mainIdx = 0;                 // 0..2 主将位置
     TroopType troop = T_CAVALRY;
     int tacticLevel = 10;            // 统一按满级战法模拟，合法范围 1..10
+    // 红度和自由属性点是队伍构建参数，不写回全局 Hero 数据。
+    int redStars[3] = {0, 0, 0};
+    int freeAttributes[3][4] = {{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}};
     std::vector<const Tactic*> slots[3]; // 每武将传承战法（不含自带）
     bool sameKingdom() const {
         return hero[0] && hero[1] && hero[2] &&

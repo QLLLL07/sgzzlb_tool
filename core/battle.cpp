@@ -50,6 +50,7 @@ struct Unit {
     int idx = 0;
     bool isMain = false;
     int tacticLevel = 10;
+    int redStars = 0;
     bool alive = true;
     double force = 0, intellect = 0, command = 0, speed = 0;
     int maxTroops = 10000, troops = 10000, wounded = 0;
@@ -118,6 +119,18 @@ struct Battle {
         un.tacticLevel = std::max(1, std::min(10, tc.tacticLevel));
         UnitStats s = computeUnitStats(*tc.hero[i], tc.troop, un.isMain, nat, 50);
         un.force = s.force; un.intellect = s.intellect; un.command = s.command; un.speed = s.speed;
+        int stars = std::max(0, std::min(5, tc.redStars[i]));
+        un.redStars = stars;
+        // 十点自由属性点由调用方分配；负数和超额点数在这里归零/截断。
+        double* attrs[4] = {&un.force, &un.intellect, &un.command, &un.speed};
+        int used = 0;
+        for (int k = 0; k < 4; ++k) {
+            int points = std::max(0, tc.freeAttributes[i][k]);
+            int remaining = std::max(0, 10 - used);
+            points = std::min(points, remaining);
+            *attrs[k] += points;
+            used += points;
+        }
         un.troops = un.maxTroops = 10000;
         un.nTactics = 0;
         // 自带战法（从战法表按名查，保证指针类型一致）
@@ -381,7 +394,7 @@ struct Battle {
         double skillBase = raw * rate / 100.0;
 
         double guarantee = atk.troops < 5000 ? atk.troops / 50.0 : 100.0;
-        double factor = 1.0 - def.dmgReduction / 100.0 + def.vuln / 100.0;
+        double factor = 1.0 - (def.dmgReduction + def.redStars * 3.0) / 100.0 + def.vuln / 100.0;
         if (factor < 0.10) factor = 0.10; // 减伤上限90%
         if (factor > 3.0) factor = 3.0;
         TroopType atkT = atk.side == 0 ? A.troop : B.troop;
@@ -389,7 +402,7 @@ struct Battle {
         double counter = counterFactor(atkT, defT);
         double fl = 0.86 + rnd() * 0.08; // 伤害浮动 86%~94%
 
-        double amp = 1.0 + atk.atkAmp / 100.0;
+        double amp = 1.0 + (atk.atkAmp + atk.redStars * 3.0) / 100.0;
         double dmg = guarantee * factor * counter * fl + skillBase * amp * factor * counter * fl;
 
         if (def.guard > 0) { dmg = 0; def.guard--; }

@@ -122,7 +122,6 @@ std::vector<RecommendEntry> recommendTeams(int topN, int topM, int sims,
                 if (k >= M) break;
                 const Candidate& cd = cands[k];
                 TeamConfig tc;
-                Hero adjusted[3];
                 int stars[3] = {0, 0, 0};
                 const int rawIds[3] = {cd.a, cd.b, cd.c};
                 for (int i = 0; i < 3; ++i) {
@@ -130,8 +129,8 @@ std::vector<RecommendEntry> recommendTeams(int topN, int topM, int sims,
                         auto it = redStars->find(rawIds[i]);
                         if (it != redStars->end()) stars[i] = std::max(0, std::min(5, it->second));
                     }
-                    adjusted[i] = heroWithRedStars(st.heroes[rawIds[i]], stars[i]);
-                    tc.hero[i] = &adjusted[i];
+                    tc.hero[i] = &st.heroes[rawIds[i]];
+                    tc.redStars[i] = stars[i];
                 }
                 tc.mainIdx = 0; // 主将取第一将（简化）
                 tc.troop = bestTroopType(tc.hero);
